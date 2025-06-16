@@ -1,0 +1,6 @@
+<svg width='192' height='192' xmlns='http://www.w3.org/2000/svg'>
+  <rect width='192' height='192' fill='#000000'/>
+  <polygon points='96,48 72,120 96,108 120,120' fill='#00ff00' stroke='#00ffff' stroke-width='3'/>
+  <circle cx='96' cy='84' r='12' fill='#00ffff'/>
+  <text x='96' y='160' text-anchor='middle' fill='#00ffff' font-family='monospace' font-size='16'>ASCENSION</text>
+</svg>

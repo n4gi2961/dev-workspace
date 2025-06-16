@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow - デジタルデトックス＆集中力向上アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --main-color: #264653;
+            --sub-color: #2A9D8F;
+            --accent-color: #E76F51;
+            --light-bg: #F1FAEE;
+            --text-primary: #264653;
+            --text-secondary: #457B9D;
+            --shadow: 0 2px 10px rgba(38, 70, 83, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            flex: 1;
+            padding: 20px;
+            padding-bottom: 80px;
+            overflow-y: auto;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, var(--main-color), var(--sub-color));
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        /* ボトムナビゲーション */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-item svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active svg {
+            fill: var(--main-color);
+        }
+
+        .nav-item.center {
+            background: linear-gradient(135deg, var(--main-color), var(--sub-color));
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            margin: -20px auto 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(38, 70, 83, 0.3);
+        }
+
+        .nav-item.center svg {
+            fill: white;
+            width: 30px;
+            height: 30px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            margin-top: 4px;
+            color: var(--text-secondary);
+        }
+
+        .nav-item.active .nav-label {
+            color: var(--main-color);
+        }
+
+        /* ホーム画面 */
+        .focus-score {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 20px;
+            background: conic-gradient(var(--sub-color) 0deg 270deg, #e0e0e0 270deg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .score-inner {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--main-color);
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--main-color);
+        }
+
+        /* デジタルデトックスモード画面 */
+        .detox-container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .detox-button {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--main-color), var(--sub-color));
+            color: white;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(38, 70, 83, 0.3);
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .detox-button:active {
+            transform: scale(0.95);
+        }
+
+        .detox-tips {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            margin-top: 20px;
+        }
+
+        /* ダッシュボード画面 */
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .chart-placeholder {
+            height: 200px;
+            background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        /* ゲーム画面 */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .game-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(38, 70, 83, 0.2);
+        }
+
+        .game-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+            background: linear-gradient(135deg, var(--sub-color), var(--accent-color));
+            border-radius: 15px;
+        }
+
+        /* 設定画面 */
+        .settings-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            margin-bottom: 15px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 26px;
+            background: #e0e0e0;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active {
+            background: var(--sub-color);
+        }
+
+        .toggle-knob {
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle.active .toggle-knob {
+            left: 26px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FocusFlow</h1>
+    </div>
+
+    <!-- ホーム画面 -->
+    <div class="screen active" id="home-screen">
+        <div class="focus-score">
+            <h2>今日の集中力スコア</h2>
+            <div class="score-circle">
+                <div class="score-inner">75</div>
+            </div>
+            <p>素晴らしい集中力です！</p>
+        </div>
+
+        <div class="quick-stats">
+            <div class="stat-card">
+                <h3>スクリーンタイム</h3>
+                <p>3時間24分</p>
+            </div>
+            <div class="stat-card">
+                <h3>集中セッション</h3>
+                <p>5回</p>
+            </div>
+            <div class="stat-card">
+                <h3>デトックス時間</h3>
+                <p>1時間30分</p>
+            </div>
+            <div class="stat-card">
+                <h3>生産性向上</h3>
+                <p>+23%</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ダッシュボード画面 -->
+    <div class="screen" id="dashboard-screen">
+        <h2 style="margin-bottom: 20px;">分析ダッシュボード</h2>
+        
+        <div class="chart-container">
+            <h3>週間集中力トレンド</h3>
+            <div class="chart-placeholder">
+                グラフエリア
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>時間帯別パフォーマンス</h3>
+            <div class="chart-placeholder">
+                グラフエリア
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>アプリ使用時間分析</h3>
+            <div class="chart-placeholder">
+                グラフエリア
+            </div>
+        </div>
+    </div>
+
+    <!-- デジタルデトックス画面 -->
+    <div class="screen" id="detox-screen">
+        <div class="detox-container">
+            <h2 style="margin-bottom: 30px;">デジタルデトックスモード</h2>
+            
+            <button class="detox-button" onclick="startDetox()">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span>開始</span>
+            </button>
+
+            <div class="detox-tips">
+                <h3>今日のTips</h3>
+                <p style="margin-top: 10px;">20分のデジタルデトックスは、2時間の集中力向上につながります。深呼吸をして、周りの環境に意識を向けてみましょう。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div class="screen" id="games-screen">
+        <h2 style="margin-bottom: 20px;">集中力トレーニング</h2>
+        
+        <div class="games-grid">
+            <div class="game-card">
+                <div class="game-icon"></div>
+                <h3>呼吸瞑想</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">5分間</p>
+            </div>
+            <div class="game-card">
+                <div class="game-icon"></div>
+                <h3>数字記憶</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">3分間</p>
+            </div>
+            <div class="game-card">
+                <div class="game-icon"></div>
+                <h3>パターン認識</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">5分間</p>
+            </div>
+            <div class="game-card">
+                <div class="game-icon"></div>
+                <h3>注意力テスト</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">7分間</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定画面 -->
+    <div class="screen" id="settings-screen">
+        <h2 style="margin-bottom: 20px;">設定</h2>
+        
+        <div class="settings-section">
+            <h3>通知設定</h3>
+            <div class="setting-item">
+                <span>デトックスリマインダー</span>
+                <div class="toggle active" onclick="toggleSetting(this)">
+                    <div class="toggle-knob"></div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <span>集中力アラート</span>
+                <div class="toggle" onclick="toggleSetting(this)">
+                    <div class="toggle-knob"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>プレミアム機能</h3>
+            <div class="setting-item">
+                <span>高度な分析機能</span>
+                <button style="background: var(--accent-color); color: white; border: none; padding: 8px 16px; border-radius: 20px;">アップグレード</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>データ管理</h3>
+            <div class="setting-item">
+                <span>データをエクスポート</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--text-secondary)">
+                    <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ボトムナビゲーション -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showScreen('home-screen', this)">
+            <svg viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+            </svg>
+            <div class="nav-label">ホーム</div>
+        </div>
+        <div class="nav-item" onclick="showScreen('dashboard-screen', this)">
+            <svg viewBox="0 0 24 24">
+                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+            </svg>
+            <div class="nav-label">分析</div>
+        </div>
+        <div class="nav-item center" onclick="showScreen('detox-screen', this)">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+        </div>
+        <div class="nav-item" onclick="showScreen('games-screen', this)">
+            <svg viewBox="0 0 24 24">
+                <path d="M15 7.5V2H9v5.5l3 3 3-3zM7.5 9H2v6h5.5l3-3-3-3zM9 16.5V22h6v-5.5l-3-3-3 3zM16.5 9l-3 3 3 3H22V9h-5.5z"/>
+            </svg>
+            <div class="nav-label">トレーニング</div>
+        </div>
+        <div class="nav-item" onclick="showScreen('settings-screen', this)">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+            <div class="nav-label">設定</div>
+        </div>
+    </div>
+
+    <script>
+        function showScreen(screenId, navItem) {
+            // すべての画面を非表示
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // 選択された画面を表示
+            document.getElementById(screenId).classList.add('active');
+            
+            // ナビゲーションのアクティブ状態を更新
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            navItem.classList.add('active');
+        }
+
+        function toggleSetting(toggle) {
+            toggle.classList.toggle('active');
+        }
+
+        function startDetox() {
+            alert('デジタルデトックスモードを開始します。\n深呼吸をして、リラックスしましょう。');
+        }
+    </script>
+</body>
+</html>

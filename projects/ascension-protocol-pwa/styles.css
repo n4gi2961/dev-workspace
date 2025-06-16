@@ -1,0 +1,422 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+}
+
+#titleScreen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a1a, #1a0a2a);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#titleScreen h1 {
+    font-size: 64px;
+    color: #00ffff;
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+    margin-bottom: 50px;
+    animation: titlePulse 2s infinite;
+}
+
+@keyframes titlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.menuButton {
+    width: 200px;
+    padding: 15px;
+    margin: 10px;
+    font-size: 20px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+}
+
+.menuButton:hover {
+    background: rgba(0, 255, 255, 0.3);
+    transform: translateX(10px);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+
+#rankingScreen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a1a, #1a0a2a);
+    display: none;
+    color: #fff;
+    z-index: 999;
+}
+
+#rankingScreen h2 {
+    text-align: center;
+    color: #00ffff;
+    font-size: 48px;
+    margin: 30px 0;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+}
+
+#rankingList {
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+    padding: 0 50px 50px 50px;
+}
+
+#rankingList::-webkit-scrollbar {
+    width: 10px;
+}
+
+#rankingList::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #00ffff;
+}
+
+#rankingList::-webkit-scrollbar-thumb {
+    background: #00ffff;
+    border-radius: 5px;
+}
+
+.rankingEntry {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    padding: 15px 20px;
+    margin: 10px auto;
+    max-width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.rankingEntry:hover {
+    background: rgba(0, 255, 255, 0.2);
+    transform: translateX(10px);
+}
+
+.rankingEntry .rank {
+    font-size: 28px;
+    color: #ffff00;
+    min-width: 60px;
+}
+
+.rankingEntry.top3 .rank {
+    color: #ff6600;
+    font-weight: bold;
+}
+
+.rankingEntry .name {
+    font-size: 22px;
+    color: #00ffff;
+    min-width: 120px;
+}
+
+.rankingEntry .stats {
+    display: flex;
+    gap: 30px;
+    flex-grow: 1;
+    justify-content: center;
+}
+
+.rankingEntry .skills {
+    display: flex;
+    gap: 10px;
+}
+
+.backButton {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    background: rgba(255, 0, 0, 0.2);
+    border: 2px solid #ff0000;
+    color: #ff0000;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.backButton:hover {
+    background: rgba(255, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+#gameContainer {
+    position: relative;
+    background: #000;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+    display: none;
+    width: 800px;
+    height: 600px;
+}
+
+#gameCanvas {
+    border: 2px solid #00ffff;
+    cursor: none;
+}
+
+#ui {
+    position: absolute;
+    top: -60px;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    color: #00ffff;
+    font-size: 18px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(0, 255, 255, 0.5);
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 30px;
+}
+
+#ui > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#ui .label {
+    color: #888;
+    font-size: 14px;
+}
+
+#ui .value {
+    color: #00ffff;
+    font-weight: bold;
+}
+
+#hearts {
+    display: flex;
+    gap: 5px;
+    margin-left: auto;
+}
+
+.heart {
+    font-size: 24px;
+    color: #ff0000;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+}
+
+#skillBar {
+    position: absolute;
+    bottom: -90px;
+    left: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.skillSlot {
+    width: 70px;
+    height: 70px;
+    border: 3px solid #00ffff;
+    background: rgba(0, 0, 0, 0.9);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: #00ffff;
+    transition: all 0.3s;
+    border-radius: 10px;
+}
+
+.skillSlot.active {
+    background: rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+    border-color: #00ff00;
+}
+
+.skillSlot.cooldown {
+    background: rgba(50, 50, 50, 0.7);
+    color: #666;
+    border-color: #666;
+}
+
+.skillSlot .cooldownOverlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 255, 255, 0.3);
+    transition: height 0.1s linear;
+    border-radius: 0 0 7px 7px;
+}
+
+.skillSlot .keyLabel {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    color: #00ffff;
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 2px 8px;
+    border: 1px solid #00ffff;
+    border-radius: 5px;
+}
+
+.skillSlot .skillIcon {
+    font-size: 35px;
+}
+
+#levelUpModal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 0, 40, 0.95));
+    border: 2px solid #00ffff;
+    padding: 20px;
+    display: none;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.8);
+    max-width: 600px;
+    z-index: 100;
+}
+
+.upgradeOption {
+    margin: 10px;
+    padding: 15px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #00ffff;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.upgradeOption:hover {
+    background: rgba(0, 255, 255, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+}
+
+.upgradeOption.ultimate {
+    border-color: #ff00ff;
+    background: rgba(255, 0, 255, 0.1);
+}
+
+.upgradeOption.ultimate:hover {
+    background: rgba(255, 0, 255, 0.3);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.6);
+}
+
+#gameOverModal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #ff0000;
+    padding: 30px;
+    display: none;
+    text-align: center;
+    color: #fff;
+    z-index: 100;
+}
+
+.gameOverButtons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.gameOverButton {
+    padding: 10px 30px;
+    background: #ff0000;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.gameOverButton:hover {
+    background: #ff4444;
+    transform: scale(1.1);
+}
+
+.gameOverButton.secondary {
+    background: #666;
+}
+
+.gameOverButton.secondary:hover {
+    background: #888;
+}
+
+.skillLevelIndicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 14px;
+    color: #ffff00;
+    font-weight: bold;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 900px) {
+    #gameContainer {
+        width: 90vw;
+        height: 67.5vw; /* 4:3 ratio */
+        max-width: 800px;
+        max-height: 600px;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        height: 100%;
+    }
+    
+    #titleScreen h1 {
+        font-size: 8vw;
+    }
+    
+    .menuButton {
+        width: 60vw;
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 600px) {
+    #ui {
+        font-size: 14px;
+        gap: 15px;
+        padding: 0 10px;
+    }
+    
+    #skillBar {
+        left: 10px;
+        gap: 10px;
+    }
+    
+    .skillSlot {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
+    .skillSlot .keyLabel {
+        font-size: 14px;
+    }
+}

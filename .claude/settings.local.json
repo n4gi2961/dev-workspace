@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for dir in archive claude-sessions experiments learning projects)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(ls:*)",
+      "Bash(echo)",
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(npm start)",
+      "Bash(cat:*)",
+      "Bash(npx create-react-app:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build:*)",
+      "Bash(pkill:*)",
+      "Bash(git add:*)",
+      "Bash(git init:*)"
+    ],
+    "deny": []
+  }
+}
