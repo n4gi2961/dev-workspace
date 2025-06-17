@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, Card, CardContent, CardActionArea } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -8,6 +8,7 @@ import {
   Visibility as AttentionIcon,
 } from '@mui/icons-material';
 import { GAME_DURATIONS, GAME_TYPES } from '../../constants';
+import { BreathingMeditationGame } from '../../components/games/BreathingMeditationGame';
 
 const GameCard = styled(Card)(({ theme }) => ({
   borderRadius: 16,
@@ -75,10 +76,25 @@ const GameItem: React.FC<GameItemProps> = ({ title, duration, icon, gradient, on
 );
 
 export const GamesPage: React.FC = () => {
+  const [currentGame, setCurrentGame] = useState<string | null>(null);
+
   const handleGameClick = (gameType: string) => {
-    // TODO: ゲーム開始ロジックを実装
-    console.log(`Starting ${gameType} game`);
+    if (gameType === GAME_TYPES.BREATHING) {
+      setCurrentGame(GAME_TYPES.BREATHING);
+    } else {
+      // TODO: 他のゲームの実装
+      console.log(`Starting ${gameType} game`);
+    }
   };
+
+  const handleBackToGames = () => {
+    setCurrentGame(null);
+  };
+
+  // 呼吸瞑想ゲーム画面を表示
+  if (currentGame === GAME_TYPES.BREATHING) {
+    return <BreathingMeditationGame onBack={handleBackToGames} />;
+  }
 
   const games = [
     {

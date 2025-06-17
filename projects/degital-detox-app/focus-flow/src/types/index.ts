@@ -45,6 +45,7 @@ export type NavigationTab = 'home' | 'dashboard' | 'detox' | 'games' | 'settings
 export interface AppState {
   user: UserData | null;
   isDetoxActive: boolean;
+  isBreathingSessionActive: boolean;
   currentScore: number;
   activeTab: NavigationTab;
   detoxSession: DetoxSession | null;
@@ -54,6 +55,8 @@ export type AppAction =
   | { type: 'SET_USER'; payload: UserData }
   | { type: 'START_DETOX' }
   | { type: 'END_DETOX' }
+  | { type: 'START_BREATHING_SESSION' }
+  | { type: 'END_BREATHING_SESSION' }
   | { type: 'UPDATE_SCORE'; payload: number }
   | { type: 'SET_ACTIVE_TAB'; payload: NavigationTab }
   | { type: 'ADD_GAME_SCORE'; payload: GameScore }

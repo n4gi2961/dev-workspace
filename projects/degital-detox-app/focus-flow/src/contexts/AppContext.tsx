@@ -9,7 +9,7 @@ const initialState: AppState = {
     settings: {
       detoxReminders: true,
       focusAlerts: false,
-      theme: 'light' as const,
+      theme: 'dark' as const,
       notifications: true,
       themeColor: 'oceanCalm' as const,
     },
@@ -25,6 +25,7 @@ const initialState: AppState = {
     detoxSessions: [],
   },
   isDetoxActive: false,
+  isBreathingSessionActive: false,
   currentScore: DEFAULT_SCORE,
   activeTab: NAVIGATION_TABS.HOME as NavigationTab,
   detoxSession: null,
@@ -109,6 +110,18 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
               },
             }
           : null,
+      };
+    
+    case 'START_BREATHING_SESSION':
+      return {
+        ...state,
+        isBreathingSessionActive: true,
+      };
+    
+    case 'END_BREATHING_SESSION':
+      return {
+        ...state,
+        isBreathingSessionActive: false,
       };
     
     default:
