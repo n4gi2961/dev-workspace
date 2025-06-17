@@ -168,7 +168,6 @@ export const SettingsPage: React.FC = () => {
                 <Switch
                   checked={currentSettings.theme === 'dark'}
                   onChange={handleThemeToggle}
-                  color="primary"
                 />
               </ListItemSecondaryAction>
             </ListItem>
@@ -245,7 +244,6 @@ export const SettingsPage: React.FC = () => {
                 <Switch
                   checked={currentSettings.detoxReminders}
                   onChange={() => handleSettingToggle('detoxReminders')}
-                  color="primary"
                 />
               </ListItemSecondaryAction>
             </ListItem>
@@ -259,7 +257,6 @@ export const SettingsPage: React.FC = () => {
                 <Switch
                   checked={currentSettings.focusAlerts}
                   onChange={() => handleSettingToggle('focusAlerts')}
-                  color="primary"
                 />
               </ListItemSecondaryAction>
             </ListItem>

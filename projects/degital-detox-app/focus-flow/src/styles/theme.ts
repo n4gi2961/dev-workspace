@@ -51,8 +51,8 @@ const createAppTheme = (isDark: boolean = false, themeColor: keyof typeof THEME_
         paper: isDark ? '#1E1E1E' : '#FFFFFF',
       },
       text: {
-        primary: isDark ? '#FFFFFF' : selectedColors.primary,
-        secondary: isDark ? '#B0BEC5' : selectedColors.secondary,
+        primary: isDark ? '#FFFFFF' : '#212121',
+        secondary: isDark ? '#B0BEC5' : '#757575',
       },
     },
   typography: {
@@ -144,6 +144,25 @@ const createAppTheme = (isDark: boolean = false, themeColor: keyof typeof THEME_
           minWidth: 'auto',
           '&.Mui-selected': {
             color: selectedColors.primary,
+          },
+        },
+      },
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          '& .MuiSwitch-switchBase': {
+            '&.Mui-checked': {
+              color: '#34C759', // iOS/Android標準の緑色
+              '& + .MuiSwitch-track': {
+                backgroundColor: '#34C759',
+                opacity: 1,
+              },
+            },
+          },
+          '& .MuiSwitch-track': {
+            backgroundColor: isDark ? '#39393D' : '#E5E5EA', // iOS/Android標準のグレー
+            opacity: 1,
           },
         },
       },

@@ -12,7 +12,7 @@ export interface UserSettings {
   focusAlerts: boolean;
   theme: 'light' | 'dark';
   notifications: boolean;
-  themeColor: 'default' | 'ocean' | 'forest' | 'sunset' | 'lavender' | 'rose' | 'mint' | 'amber' | 'slate' | 'purple';
+  themeColor: 'oceanCalm' | 'deepFocus' | 'serenity' | 'tranquil' | 'mistyWater' | 'sunrise' | 'morningGlow' | 'daybreak' | 'aurora' | 'rose';
 }
 
 export interface UserStats {
