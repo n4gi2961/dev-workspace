@@ -49,7 +49,7 @@ export const DEFAULT_USER_SETTINGS = {
   focusAlerts: false,
   theme: 'light' as const,
   notifications: true,
-  themeColor: 'default' as const,
+  themeColor: 'oceanCalm' as const,
 };
 
 export const THEME_COLORS = {
@@ -118,83 +118,12 @@ export const THEME_COLORS = {
     accent: '#95D5B2',
     background: '#FFF5F0',
   },
-  sunshine: {
-    name: 'サンシャイン',
-    primary: '#F8961E',
-    secondary: '#F9C74F',
-    accent: '#43AA8B',
-    background: '#FFFBF0',
-  },
-  // 既存のテーマ（互換性のため保持）
-  default: {
-    name: 'デフォルト',
-    primary: '#264653',
-    secondary: '#2A9D8F',
-    accent: '#E76F51',
-    background: '#F1FAEE',
-  },
-  ocean: {
-    name: 'オーシャン',
-    primary: '#0077BE',
-    secondary: '#00A8E8',
-    accent: '#007EA7',
-    background: '#E6F7FF',
-  },
-  forest: {
-    name: 'フォレスト',
-    primary: '#2D5016',
-    secondary: '#3B7321',
-    accent: '#65A30D',
-    background: '#F0F9E6',
-  },
-  sunset: {
-    name: 'サンセット',
-    primary: '#8B3A3A',
-    secondary: '#D2691E',
-    accent: '#FF6347',
-    background: '#FFF8DC',
-  },
-  lavender: {
-    name: 'ラベンダー',
-    primary: '#663399',
-    secondary: '#9966CC',
-    accent: '#DDA0DD',
-    background: '#F8F4FF',
-  },
   rose: {
     name: 'ローズ',
-    primary: '#8B1538',
-    secondary: '#C21807',
-    accent: '#FF69B4',
+    primary: '#DC143C',
+    secondary: '#228B22',
+    accent: '#FFB6C1',
     background: '#FFF0F5',
-  },
-  mint: {
-    name: 'ミント',
-    primary: '#2F5233',
-    secondary: '#40826D',
-    accent: '#52B788',
-    background: '#F1FDF4',
-  },
-  amber: {
-    name: 'アンバー',
-    primary: '#B45309',
-    secondary: '#D97706',
-    accent: '#F59E0B',
-    background: '#FFFBEB',
-  },
-  slate: {
-    name: 'スレート',
-    primary: '#334155',
-    secondary: '#475569',
-    accent: '#64748B',
-    background: '#F8FAFC',
-  },
-  purple: {
-    name: 'パープル',
-    primary: '#6B21A8',
-    secondary: '#9333EA',
-    accent: '#A855F7',
-    background: '#FAF5FF',
   },
 } as const;
 

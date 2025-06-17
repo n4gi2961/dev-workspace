@@ -114,7 +114,7 @@ export const SettingsPage: React.FC = () => {
     focusAlerts: false,
     theme: 'light' as const,
     notifications: true,
-    themeColor: 'default' as const,
+    themeColor: 'oceanCalm' as const,
   };
 
   const handleThemeColorChange = (colorKey: string) => {
@@ -185,18 +185,46 @@ export const SettingsPage: React.FC = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             お好みの配色を選択してください
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
-            {Object.entries(THEME_COLORS).map(([key, colors], index) => (
-              <ThemeColorCard
-                key={key}
-                selected={currentSettings.themeColor === key}
-                themeColors={colors}
-                onClick={() => handleThemeColorChange(key)}
-                elevation={currentSettings.themeColor === key ? 4 : 1}
-              >
-                {colors.name}
-              </ThemeColorCard>
-            ))}
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+            {/* 寒色系テーマ（左側） */}
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
+                寒色系
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {Object.entries(THEME_COLORS).slice(0, 5).map(([key, colors]) => (
+                  <ThemeColorCard
+                    key={key}
+                    selected={currentSettings.themeColor === key}
+                    themeColors={colors}
+                    onClick={() => handleThemeColorChange(key)}
+                    elevation={currentSettings.themeColor === key ? 4 : 1}
+                  >
+                    {colors.name}
+                  </ThemeColorCard>
+                ))}
+              </Box>
+            </Box>
+            
+            {/* 暖色系テーマ（右側） */}
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.primary' }}>
+                暖色系
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {Object.entries(THEME_COLORS).slice(5, 10).map(([key, colors]) => (
+                  <ThemeColorCard
+                    key={key}
+                    selected={currentSettings.themeColor === key}
+                    themeColors={colors}
+                    onClick={() => handleThemeColorChange(key)}
+                    elevation={currentSettings.themeColor === key ? 4 : 1}
+                  >
+                    {colors.name}
+                  </ThemeColorCard>
+                ))}
+              </Box>
+            </Box>
           </Box>
         </CardContent>
       </SettingsCard>

@@ -11,7 +11,7 @@ const ThemedApp: React.FC = () => {
   const theme = React.useMemo(() => {
     return createAppTheme(
       state.user?.settings?.theme === 'dark',
-      state.user?.settings?.themeColor || 'default'
+      state.user?.settings?.themeColor || 'oceanCalm'
     );
   }, [state.user?.settings?.theme, state.user?.settings?.themeColor]);
 

@@ -11,7 +11,7 @@ const initialState: AppState = {
       focusAlerts: false,
       theme: 'light' as const,
       notifications: true,
-      themeColor: 'default' as const,
+      themeColor: 'oceanCalm' as const,
     },
     stats: {
       dailyScore: DEFAULT_SCORE,

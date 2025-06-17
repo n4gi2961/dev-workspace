@@ -25,7 +25,7 @@ declare module '@mui/material/styles' {
   }
 }
 
-const createAppTheme = (isDark: boolean = false, themeColor: keyof typeof THEME_COLORS = 'default') => {
+const createAppTheme = (isDark: boolean = false, themeColor: keyof typeof THEME_COLORS = 'oceanCalm') => {
   const selectedColors = THEME_COLORS[themeColor];
   
   return createTheme({
