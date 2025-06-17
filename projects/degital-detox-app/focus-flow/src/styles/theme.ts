@@ -6,6 +6,8 @@ declare module '@mui/material/styles' {
     custom: {
       focusGradient: string;
       detoxGradient: string;
+      accentGradient: string;
+      reverseGradient: string;
       shadowLight: string;
       shadowMedium: string;
     };
@@ -15,6 +17,8 @@ declare module '@mui/material/styles' {
     custom?: {
       focusGradient?: string;
       detoxGradient?: string;
+      accentGradient?: string;
+      reverseGradient?: string;
       shadowLight?: string;
       shadowMedium?: string;
     };
@@ -100,7 +104,9 @@ const createAppTheme = (isDark: boolean = false, themeColor: keyof typeof THEME_
   },
   custom: {
     focusGradient: `linear-gradient(135deg, ${selectedColors.primary}, ${selectedColors.secondary})`,
-    detoxGradient: `linear-gradient(135deg, ${selectedColors.secondary}, ${selectedColors.accent})`,
+    detoxGradient: `linear-gradient(135deg, ${selectedColors.primary}, ${selectedColors.secondary}, ${selectedColors.accent})`,
+    accentGradient: `linear-gradient(45deg, ${selectedColors.secondary}, ${selectedColors.accent})`,
+    reverseGradient: `linear-gradient(225deg, ${selectedColors.accent}, ${selectedColors.secondary}, ${selectedColors.primary})`,
     shadowLight: isDark ? '0 2px 10px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(38, 70, 83, 0.1)',
     shadowMedium: isDark ? '0 4px 20px rgba(0, 0, 0, 0.4)' : '0 4px 20px rgba(38, 70, 83, 0.15)',
   },

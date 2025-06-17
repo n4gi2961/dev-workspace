@@ -36,15 +36,17 @@ const SettingsCard = styled(Card)(({ theme }) => ({
 }));
 
 const PremiumButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #E76F51, #F4A261)',
+  background: theme.custom.reverseGradient,
   color: 'white',
   borderRadius: 20,
   padding: '8px 20px',
   textTransform: 'none',
   fontWeight: 600,
   '&:hover': {
-    background: 'linear-gradient(135deg, #D0634A, #E6934A)',
+    background: theme.custom.accentGradient,
+    transform: 'scale(1.05)',
   },
+  transition: 'all 0.2s ease',
 }));
 
 const ThemeColorCard = styled(Paper)<{ selected: boolean; themeColors: any }>(({ theme, selected, themeColors }) => ({
@@ -53,7 +55,7 @@ const ThemeColorCard = styled(Paper)<{ selected: boolean; themeColors: any }>(({
   borderRadius: 12,
   cursor: 'pointer',
   border: selected ? `3px solid ${theme.palette.primary.main}` : '2px solid transparent',
-  background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.secondary})`,
+  background: `linear-gradient(135deg, ${themeColors.primary}, ${themeColors.secondary}, ${themeColors.accent})`,
   transition: 'all 0.2s ease',
   display: 'flex',
   alignItems: 'center',
@@ -73,6 +75,7 @@ const ThemeColorCard = styled(Paper)<{ selected: boolean; themeColors: any }>(({
     right: 8,
     fontSize: '1.2rem',
     fontWeight: 'bold',
+    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
   } : {},
 }));
 

@@ -21,7 +21,7 @@ const StatCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-const StatIcon = styled(Box)(({ theme }) => ({
+const StatIcon = styled(Box)<{ gradientType?: 'focus' | 'detox' | 'accent' | 'reverse' }>(({ theme, gradientType = 'focus' }) => ({
   width: 40,
   height: 40,
   borderRadius: 10,
@@ -29,6 +29,8 @@ const StatIcon = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'center',
   marginBottom: theme.spacing(1),
+  background: theme.custom[`${gradientType}Gradient`],
+  color: 'white',
   '& > svg': {
     fontSize: 20,
   },
@@ -38,15 +40,14 @@ interface StatItemProps {
   icon: React.ReactNode;
   title: string;
   value: string;
-  iconColor: string;
-  iconBg: string;
+  gradientType: 'focus' | 'detox' | 'accent' | 'reverse';
 }
 
-const StatItem: React.FC<StatItemProps> = ({ icon, title, value, iconColor, iconBg }) => (
+const StatItem: React.FC<StatItemProps> = ({ icon, title, value, gradientType }) => (
   <Box sx={{ width: '50%', p: 1 }}>
     <StatCard>
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, textAlign: 'center' }}>
-        <StatIcon sx={{ backgroundColor: iconBg, color: iconColor, margin: '0 auto 8px' }}>
+        <StatIcon gradientType={gradientType} sx={{ margin: '0 auto 8px' }}>
           {icon}
         </StatIcon>
         
@@ -89,29 +90,25 @@ export const QuickStatsGrid: React.FC = () => {
       icon: <TimeIcon />,
       title: 'スクリーンタイム',
       value: formatDuration(stats.screenTime),
-      iconColor: '#E76F51',
-      iconBg: 'rgba(231, 111, 81, 0.1)',
+      gradientType: 'reverse',
     },
     {
       icon: <TrendingIcon />,
       title: '集中セッション',
       value: `${stats.focusSessions}回`,
-      iconColor: '#2A9D8F',
-      iconBg: 'rgba(42, 157, 143, 0.1)',
+      gradientType: 'focus',
     },
     {
       icon: <MeditationIcon />,
       title: 'デトックス時間',
       value: formatDuration(stats.detoxTime),
-      iconColor: '#264653',
-      iconBg: 'rgba(38, 70, 83, 0.1)',
+      gradientType: 'detox',
     },
     {
       icon: <SpeedIcon />,
       title: '生産性向上',
       value: `+${stats.productivityGain}%`,
-      iconColor: '#457B9D',
-      iconBg: 'rgba(69, 123, 157, 0.1)',
+      gradientType: 'accent',
     },
   ];
 

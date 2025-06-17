@@ -21,7 +21,7 @@ const ScoreCircle = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'center',
   position: 'relative',
-  background: `conic-gradient(${theme.palette.secondary.main} 0deg, ${theme.palette.secondary.main} var(--angle), #e0e0e0 var(--angle))`,
+  background: `conic-gradient(${theme.custom.accentGradient} 0deg, ${theme.custom.accentGradient} var(--angle), #e0e0e0 var(--angle))`,
   
   [theme.breakpoints.down('sm')]: {
     width: 140,

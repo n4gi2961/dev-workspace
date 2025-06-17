@@ -53,6 +53,79 @@ export const DEFAULT_USER_SETTINGS = {
 };
 
 export const THEME_COLORS = {
+  // オーシャンカーム（寒色系）
+  oceanCalm: {
+    name: 'オーシャンカーム',
+    primary: '#264653',
+    secondary: '#2A9D8F',
+    accent: '#E76F51',
+    background: '#F1FAEE',
+  },
+  deepFocus: {
+    name: 'ディープフォーカス',
+    primary: '#003049',
+    secondary: '#669BBC',
+    accent: '#FFC300',
+    background: '#F0F8FF',
+  },
+  serenity: {
+    name: 'セレニティ',
+    primary: '#0077B6',
+    secondary: '#00B4D8',
+    accent: '#90E0EF',
+    background: '#E6F9FF',
+  },
+  tranquil: {
+    name: 'トランクィル',
+    primary: '#03045E',
+    secondary: '#0096C7',
+    accent: '#CAF0F8',
+    background: '#F0F9FF',
+  },
+  mistyWater: {
+    name: 'ミスティウォーター',
+    primary: '#1D3557',
+    secondary: '#457B9D',
+    accent: '#A8DADC',
+    background: '#F1F9FA',
+  },
+  // サンライズ（暖色系）
+  sunrise: {
+    name: 'サンライズ',
+    primary: '#FF8C42',
+    secondary: '#FFD166',
+    accent: '#06D6A0',
+    background: '#FFF9E6',
+  },
+  morningGlow: {
+    name: 'モーニンググロウ',
+    primary: '#F4A261',
+    secondary: '#E9C46A',
+    accent: '#2A9D8F',
+    background: '#FFF8E1',
+  },
+  daybreak: {
+    name: 'デイブレイク',
+    primary: '#F77F00',
+    secondary: '#FCBF49',
+    accent: '#52B788',
+    background: '#FFFAEB',
+  },
+  aurora: {
+    name: 'オーロラ',
+    primary: '#EE6C4D',
+    secondary: '#FFE8D6',
+    accent: '#95D5B2',
+    background: '#FFF5F0',
+  },
+  sunshine: {
+    name: 'サンシャイン',
+    primary: '#F8961E',
+    secondary: '#F9C74F',
+    accent: '#43AA8B',
+    background: '#FFFBF0',
+  },
+  // 既存のテーマ（互換性のため保持）
   default: {
     name: 'デフォルト',
     primary: '#264653',
