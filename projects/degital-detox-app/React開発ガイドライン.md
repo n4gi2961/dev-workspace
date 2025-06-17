@@ -1,436 +1,106 @@
-# React開発ガイドライン - FocusFlow
+## 開発者向け技術ガイドライン
 
-## 1. プロジェクト構成
+### React Native開発の基礎知識
 
-### 1.1 ディレクトリ構造
-```
-focus-flow/
-├── public/
-├── src/
-│   ├── components/          # 再利用可能なコンポーネント
-│   │   ├── common/         # 共通コンポーネント
-│   │   ├── layout/         # レイアウト関連
-│   │   └── ui/             # UIコンポーネント
-│   ├── pages/              # ページコンポーネント
-│   │   ├── Home/
-│   │   ├── Dashboard/
-│   │   ├── Detox/
-│   │   ├── Games/
-│   │   └── Settings/
-│   ├── hooks/              # カスタムフック
-│   ├── contexts/           # React Context
-│   ├── utils/              # ユーティリティ関数
-│   ├── types/              # TypeScript型定義
-│   ├── constants/          # 定数
-│   └── styles/             # グローバルスタイル
-```
+**React Nativeの本質的理解**
 
-### 1.2 命名規則
-- **コンポーネント**: PascalCase (`HomeScreen`, `FocusScoreCard`)
-- **ファイル**: PascalCase for components, camelCase for others
-- **変数・関数**: camelCase (`getUserData`, `isDetoxActive`)
-- **定数**: UPPER_SNAKE_CASE (`MAX_SCORE`, `DEFAULT_TIMEOUT`)
-- **型**: PascalCase (`UserData`, `GameScore`)
+React Nativeは、Facebookが開発したクロスプラットフォームモバイルアプリケーション開発フレームワークです。「Learn once, write anywhere」の理念のもと、JavaScriptとReactの知識を活用して、iOSとAndroidの両プラットフォームに対応したネイティブアプリケーションを開発できます。
 
-## 2. コンポーネント設計
+重要な点は、React NativeがWebViewを使用したハイブリッドアプリケーションではなく、プラットフォーム固有のネイティブコンポーネントを使用した真のネイティブアプリケーションを生成することです。これにより、ネイティブアプリと同等のパフォーマンスとユーザー体験を提供できます。
 
-### 2.1 コンポーネントの分類
-- **Pages**: ルートレベルのページコンポーネント
-- **Containers**: ビジネスロジックを持つコンポーネント
-- **Presentational**: 純粋な表示用コンポーネント
-- **UI**: 再利用可能なUIコンポーネント
+**JavaScriptの非同期処理**
 
-### 2.2 Props設計
-```typescript
-// 良い例
-interface ButtonProps {
-  variant: 'primary' | 'secondary' | 'danger';
-  size: 'small' | 'medium' | 'large';
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}
+モバイルアプリ開発において、非同期処理の理解は不可欠です。ネットワーク通信、ファイル操作、データベースアクセスなど、多くの処理が非同期で実行されます。
 
-// 悪い例
-interface ButtonProps {
-  color: string;
-  width: number;
-  height: number;
-  // ... 多すぎるprops
-}
-```
+Promiseは非同期処理を扱うための基本的な仕組みであり、成功（resolve）または失敗（reject）の状態を持ちます。async/awaitシンタックスは、Promiseをより直感的に扱えるようにした構文糖衣であり、非同期コードを同期的に記述できます。
 
-### 2.3 コンポーネントテンプレート
-```typescript
-import React from 'react';
-import { styled } from '@mui/material/styles';
+### プラットフォーム固有の考慮事項
 
-interface ComponentProps {
-  // Props定義
-}
+**iOS開発における制約**
 
-const StyledComponent = styled('div')(({ theme }) => ({
-  // スタイル定義
-}));
+iOSは、セキュリティとプライバシー保護を最優先とするプラットフォームです。アプリケーションは厳格なサンドボックス環境で動作し、システムレベルの機能へのアクセスは制限されています。
 
-export const Component: React.FC<ComponentProps> = ({
-  // Props destructuring
-}) => {
-  // ロジック
+App Store Review Guidelinesの理解は必須であり、特に以下の点に注意が必要です：
 
-  return (
-    <StyledComponent>
-      {/* JSX */}
-    </StyledComponent>
-  );
-};
-```
+- ユーザーデータの取り扱いに関する透明性
+- 必要最小限の権限要求
+- 子供向けコンテンツに関する厳格な規制
 
-## 3. 状態管理
+**Android開発における考慮点**
 
-### 3.1 Context設計
-```typescript
-// contexts/AppContext.tsx
-interface AppState {
-  user: UserData | null;
-  isDetoxActive: boolean;
-  currentScore: number;
-}
+Androidは、より開放的なエコシステムを持ちますが、デバイスの断片化という課題があります。異なる画面サイズ、OSバージョン、ハードウェア仕様に対応する必要があります。
 
-interface AppContextType {
-  state: AppState;
-  dispatch: React.Dispatch<AppAction>;
-}
+権限システムは段階的に厳格化されており、Android 6.0以降では実行時権限の要求が必要です。また、バックグラウンド処理の制限も年々強化されているため、最新のベストプラクティスに従う必要があります。
 
-const AppContext = React.createContext<AppContextType | undefined>(undefined);
+### 状態管理とアーキテクチャ
 
-export const useAppContext = () => {
-  const context = React.useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within AppProvider');
-  }
-  return context;
-};
-```
+**Reactの状態管理パラダイム**
 
-### 3.2 Reducer パターン
-```typescript
-type AppAction = 
-  | { type: 'SET_USER'; payload: UserData }
-  | { type: 'START_DETOX' }
-  | { type: 'END_DETOX' }
-  | { type: 'UPDATE_SCORE'; payload: number };
+Reactにおける状態管理は、アプリケーションの複雑性に応じて選択する必要があります。小規模なアプリケーションではuseStateフックで十分ですが、複雑なアプリケーションではより高度なソリューションが必要です。
 
-const appReducer = (state: AppState, action: AppAction): AppState => {
-  switch (action.type) {
-    case 'SET_USER':
-      return { ...state, user: action.payload };
-    case 'START_DETOX':
-      return { ...state, isDetoxActive: true };
-    // ... その他のcase
-    default:
-      return state;
-  }
-};
-```
+Context APIは、プロップドリリングを避けるための組み込みソリューションですが、パフォーマンスの考慮が必要です。Redux ToolkitやMobXなどの外部ライブラリは、より予測可能で効率的な状態管理を提供します。
 
-## 4. スタイリング
+**アーキテクチャパターン**
 
-### 4.1 Material-UI テーマ設定
-```typescript
-// styles/theme.ts
-import { createTheme } from '@mui/material/styles';
+クリーンアーキテクチャの原則に従い、ビジネスロジックをUIから分離することが重要です。これにより、テスタビリティが向上し、プラットフォーム間でのコード共有が容易になります。
 
-export const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#264653',
-    },
-    secondary: {
-      main: '#2A9D8F',
-    },
-    background: {
-      default: '#F1FAEE',
-    },
-  },
-  typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      'sans-serif',
-    ].join(','),
-  },
-});
-```
+レイヤードアーキテクチャの採用により、プレゼンテーション層、ビジネスロジック層、データ層を明確に分離し、各層の責任を明確にすることができます。
 
-### 4.2 Emotion Styled Components
-```typescript
-import { styled } from '@mui/material/styles';
+### パフォーマンス最適化
 
-const StyledCard = styled('div')(({ theme }) => ({
-  padding: theme.spacing(3),
-  borderRadius: theme.shape.borderRadius * 2,
-  backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[2],
-  
-  [theme.breakpoints.down('md')]: {
-    padding: theme.spacing(2),
-  },
-}));
-```
+**レンダリング最適化**
 
-## 5. カスタムフック
+React Nativeにおけるパフォーマンス最適化の鍵は、不要な再レンダリングの防止です。React.memo、useMemo、useCallbackを適切に使用することで、コンポーネントの再レンダリングを最小限に抑えることができます。
 
-### 5.1 データフェッチング
-```typescript
-// hooks/useUserData.ts
-export const useUserData = () => {
-  const [data, setData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+FlatListやSectionListなどの仮想化されたリストコンポーネントの使用は、大量のデータを扱う際に必須です。これらのコンポーネントは、画面に表示される要素のみをレンダリングし、メモリ使用量を削減します。
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const userData = await getUserData();
-        setData(userData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
+**メモリ管理**
 
-    fetchData();
-  }, []);
+メモリリークは、モバイルアプリケーションにおいて深刻な問題となります。イベントリスナーの適切な削除、タイマーのクリア、非同期処理のキャンセルなど、リソースの適切な管理が必要です。
 
-  return { data, loading, error };
-};
-```
+画像の最適化も重要な要素です。適切なサイズへのリサイズ、遅延読み込み、キャッシング戦略の実装により、メモリ使用量を大幅に削減できます。
 
-### 5.2 ローカルストレージ
-```typescript
-// hooks/useLocalStorage.ts
-export const useLocalStorage = <T>(key: string, initialValue: T) => {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      return initialValue;
-    }
-  });
+### セキュリティベストプラクティス
 
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
-    }
-  };
+**データ保護**
 
-  return [storedValue, setValue] as const;
-};
-```
+機密データは必ず暗号化して保存する必要があります。React Native Keychainやreact-native-encrypted-storageなどのライブラリを使用し、プラットフォーム固有のセキュアストレージを活用します。
 
-## 6. TypeScript設定
+ネットワーク通信においては、HTTPSの使用が必須であり、証明書ピンニングの実装により、中間者攻撃を防ぐことができます。
 
-### 6.1 型定義
-```typescript
-// types/index.ts
-export interface UserData {
-  id: string;
-  name: string;
-  settings: UserSettings;
-  stats: UserStats;
-  gameScores: GameScore[];
-  detoxSessions: DetoxSession[];
-}
+**コードの保護**
 
-export interface UserStats {
-  dailyScore: number;
-  screenTime: number;
-  focusSessions: number;
-  detoxTime: number;
-  productivityGain: number;
-  weeklyTrend: number[];
-}
+JavaScriptコードは基本的に読み取り可能であるため、重要なビジネスロジックはサーバーサイドに配置することが推奨されます。また、コードの難読化により、リバースエンジニアリングを困難にすることができます。
 
-export interface GameScore {
-  gameType: 'breathing' | 'memory' | 'pattern' | 'attention';
-  score: number;
-  timestamp: Date;
-  duration: number;
-}
-```
+### 継続的な学習とスキル向上
 
-### 6.2 Utility Types
-```typescript
-// types/utils.ts
-export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-export type Nullable<T> = T | null;
-export type AsyncReturnType<T extends (...args: any) => Promise<any>> = 
-  T extends (...args: any) => Promise<infer R> ? R : any;
-```
+**必須スキルの優先順位**
 
-## 7. テスト
+1. JavaScriptの深い理解（ES6+、非同期処理、関数型プログラミング）
+2. Reactの基本概念（コンポーネント、状態、ライフサイクル）
+3. モバイル開発の特性（タッチ操作、画面遷移、プラットフォーム差異）
+4. デバッグとトラブルシューティング技術
+5. パフォーマンス分析と最適化手法
 
-### 7.1 テスト構成
-```typescript
-// __tests__/components/Button.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Button } from '../Button';
+**推奨される学習リソース**
 
-describe('Button', () => {
-  it('renders button with text', () => {
-    render(<Button onClick={() => {}}>Click me</Button>);
-    expect(screen.getByText('Click me')).toBeInTheDocument();
-  });
+公式ドキュメントは最も信頼できる情報源です。React NativeとReactの公式ドキュメントを定期的に確認し、最新のベストプラクティスを把握することが重要です。
 
-  it('calls onClick when clicked', () => {
-    const handleClick = jest.fn();
-    render(<Button onClick={handleClick}>Click me</Button>);
-    
-    fireEvent.click(screen.getByText('Click me'));
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-});
-```
+実践的な経験を積むため、小規模なプロジェクトから始め、徐々に複雑な機能を追加していくアプローチが効果的です。オープンソースプロジェクトへの貢献も、実践的なスキル向上に役立ちます。
 
-## 8. パフォーマンス最適化
+### Claude Code活用時の注意点
 
-### 8.1 React.memo使用
-```typescript
-export const ExpensiveComponent = React.memo<Props>(({ data }) => {
-  // 重い処理
-  return <div>{/* JSX */}</div>;
-});
-```
+**コード理解の重要性**
 
-### 8.2 useMemo/useCallback使用
-```typescript
-const MyComponent = ({ items, onItemClick }) => {
-  const expensiveValue = useMemo(() => {
-    return items.reduce((acc, item) => acc + item.value, 0);
-  }, [items]);
+Claude Codeが生成したコードを盲目的に使用するのではなく、その動作原理を理解することが重要です。生成されたコードを学習材料として活用し、なぜそのような実装になっているのかを分析することで、開発スキルの向上につながります。
 
-  const handleClick = useCallback((id: string) => {
-    onItemClick(id);
-  }, [onItemClick]);
+**品質保証プロセス**
 
-  return (
-    // JSX
-  );
-};
-```
+生成されたコードには必ずコードレビューを実施し、以下の観点で評価する必要があります：
 
-## 9. エラーハンドリング
+- セキュリティ脆弱性の有無
+- パフォーマンスへの影響
+- 保守性と可読性
+- プラットフォーム固有の考慮事項への対応
 
-### 9.1 Error Boundary
-```typescript
-class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <h1>Something went wrong.</h1>;
-    }
-
-    return this.props.children;
-  }
-}
-```
-
-## 10. アクセシビリティ
-
-### 10.1 ARIA属性
-```typescript
-<button
-  aria-label="デジタルデトックスを開始"
-  aria-describedby="detox-description"
-  onClick={startDetox}
->
-  開始
-</button>
-```
-
-### 10.2 フォーカス管理
-```typescript
-const useKeyboardNavigation = () => {
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Tab') {
-        // フォーカス管理ロジック
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-};
-```
-
-## 11. パフォーマンス監視
-
-### 11.1 コード分割
-```typescript
-const LazyComponent = React.lazy(() => import('./LazyComponent'));
-
-function App() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LazyComponent />
-    </Suspense>
-  );
-}
-```
-
-### 11.2 Bundle分析
-```bash
-# Bundle分析
-npm run build -- --analyze
-```
-
-## 12. 開発環境設定
-
-### 12.1 ESLint設定
-```json
-{
-  "extends": [
-    "react-app",
-    "@typescript-eslint/recommended",
-    "prettier"
-  ],
-  "rules": {
-    "react-hooks/exhaustive-deps": "warn",
-    "@typescript-eslint/no-unused-vars": "error"
-  }
-}
-```
-
-### 12.2 Prettier設定
-```json
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 80,
-  "tabWidth": 2
-}
-```
+自動テストの作成により、生成されたコードの動作を保証し、将来的な変更に対する安全性を確保することができます。
