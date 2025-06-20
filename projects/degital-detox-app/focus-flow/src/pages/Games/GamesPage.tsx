@@ -44,13 +44,12 @@ interface GameItemProps {
 }
 
 const GameItem: React.FC<GameItemProps> = ({ title, duration, icon, gradient, onClick }) => (
-  <Box sx={{ width: '50%', p: 1 }}>
-    <GameCard>
-      <CardActionArea onClick={onClick}>
-        <CardContent sx={{ textAlign: 'center', p: 3 }}>
-          <GameIcon sx={{ background: gradient, color: 'white' }}>
-            {icon}
-          </GameIcon>
+  <GameCard>
+    <CardActionArea onClick={onClick}>
+      <CardContent sx={{ textAlign: 'center', p: 3 }}>
+        <GameIcon sx={{ background: gradient, color: 'white' }}>
+          {icon}
+        </GameIcon>
           
           <Typography
             variant="h6"
@@ -73,7 +72,6 @@ const GameItem: React.FC<GameItemProps> = ({ title, duration, icon, gradient, on
         </CardContent>
       </CardActionArea>
     </GameCard>
-  </Box>
 );
 
 export const GamesPage: React.FC = () => {
@@ -164,12 +162,12 @@ export const GamesPage: React.FC = () => {
       </Typography>
 
       <Box sx={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
         gap: 2,
-        justifyContent: 'center',
-        alignItems: 'stretch',
-        px: 2
+        px: 2,
+        maxWidth: 600,
+        mx: 'auto'
       }}>
         {games.map((game, index) => (
           <GameItem key={index} {...game} />

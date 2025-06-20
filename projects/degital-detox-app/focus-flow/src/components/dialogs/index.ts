@@ -1,0 +1,1 @@
+export { DetoxEndDialog } from './DetoxEndDialog';

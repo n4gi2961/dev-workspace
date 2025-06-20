@@ -26,6 +26,32 @@ const StyledBottomNavigation = styled(MuiBottomNavigation)(({ theme }) => ({
   zIndex: 1000,
   height: 70,
   paddingBottom: 'env(safe-area-inset-bottom)',
+  display: 'flex',
+}));
+
+const NavigationItem = styled(BottomNavigationAction)<{ isDetox?: boolean }>(({ theme, isDetox }) => ({
+  flex: isDetox ? '0 0 24%' : '0 0 19%',
+  minWidth: 'unset !important',
+  maxWidth: 'unset !important',
+  '&.Mui-selected': {
+    color: theme.palette.primary.main,
+    '& .MuiBottomNavigationAction-label': {
+      fontSize: '0.7rem',
+      transform: 'scale(1)',
+    },
+    '& svg': {
+      transform: 'scale(1.1)',
+    },
+  },
+  '& .MuiBottomNavigationAction-label': {
+    fontSize: '0.7rem',
+    transition: 'all 0.2s ease',
+  },
+  '& svg': {
+    transition: 'transform 0.2s ease',
+  },
+  opacity: isDetox ? 0 : 1,
+  pointerEvents: isDetox ? 'none' : 'auto',
 }));
 
 const DetoxFab = styled(Fab)(({ theme }) => ({
@@ -100,18 +126,12 @@ export const BottomNavigation: React.FC = () => {
           showLabels
         >
           {navigationItems.map((item) => (
-            <BottomNavigationAction
+            <NavigationItem
               key={item.value}
               value={item.value}
               label={item.label}
               icon={item.icon}
-              sx={{
-                minWidth: item.value === NAVIGATION_TABS.DETOX ? 0 : 'auto',
-                opacity: item.value === NAVIGATION_TABS.DETOX ? 0 : 1,
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                },
-              }}
+              isDetox={item.value === NAVIGATION_TABS.DETOX}
             />
           ))}
         </StyledBottomNavigation>

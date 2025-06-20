@@ -130,3 +130,5 @@ export const THEME_COLORS = {
 export const MAX_SCORE = 100;
 export const MIN_SCORE = 0;
 export const DEFAULT_SCORE = 50;
+
+export { MOTIVATION_TIPS } from './motivation';

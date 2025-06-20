@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, Button, Card, CardContent } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { SelfImprovement as DetoxIcon } from '@mui/icons-material';
@@ -6,6 +6,8 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useDetoxTimer } from '../../hooks/useDetoxTimer';
 import { getRandomTip } from '../../utils';
 import { DETOX_TIPS } from '../../constants';
+import { DetoxEndDialog } from '../../components/dialogs';
+import { DetoxResultPage } from './DetoxResultPage';
 
 const DetoxContainer = styled(Box)({
   textAlign: 'center',
@@ -61,18 +63,79 @@ const TimerDisplay = styled(Typography)(({ theme }) => ({
 
 export const DetoxPage: React.FC = () => {
   const { state, dispatch } = useAppContext();
-  const { isActive, formattedTime, startTimer, stopTimer, resetTimer } = useDetoxTimer();
+  const { isActive, formattedTime, elapsedTime, startTimer, stopTimer, resetTimer } = useDetoxTimer();
   const [currentTip] = React.useState(() => getRandomTip(DETOX_TIPS));
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [sessionDuration, setSessionDuration] = useState(0);
+
+  const handleDetoxStart = () => {
+    startTimer();
+    dispatch({ type: 'START_DETOX' });
+  };
+
+  const handleDetoxStop = () => {
+    setShowEndDialog(true);
+  };
+
+  const handleEndDialogClose = () => {
+    setShowEndDialog(false);
+  };
+
+  const handleEndDialogConfirm = () => {
+    const duration = stopTimer();
+    setSessionDuration(duration);
+    setShowEndDialog(false);
+    setShowResult(true);
+    
+    // AppContextのデトックスセッションを更新
+    dispatch({ type: 'END_DETOX' });
+    
+    // ユーザーの統計を更新
+    if (state.user) {
+      const updatedUser = {
+        ...state.user,
+        stats: {
+          ...state.user.stats,
+          detoxTime: state.user.stats.detoxTime + duration,
+          focusSessions: state.user.stats.focusSessions + 1,
+        },
+        detoxSessions: [
+          ...state.user.detoxSessions,
+          {
+            id: Date.now().toString(),
+            startTime: new Date(Date.now() - duration),
+            endTime: new Date(),
+            duration,
+            completed: true,
+          }
+        ]
+      };
+      dispatch({ type: 'SET_USER', payload: updatedUser });
+    }
+  };
+
+  const handleResultClose = () => {
+    setShowResult(false);
+    setSessionDuration(0);
+  };
 
   const handleDetoxToggle = () => {
     if (isActive) {
-      stopTimer();
-      dispatch({ type: 'END_DETOX' });
+      handleDetoxStop();
     } else {
-      startTimer();
-      dispatch({ type: 'START_DETOX' });
+      handleDetoxStart();
     }
   };
+
+  if (showResult) {
+    return (
+      <DetoxResultPage
+        sessionDuration={sessionDuration}
+        onClose={handleResultClose}
+      />
+    );
+  }
 
   return (
     <Box sx={{ mt: 8 }}>
@@ -116,6 +179,13 @@ export const DetoxPage: React.FC = () => {
           </CardContent>
         </TipsCard>
       </DetoxContainer>
+
+      <DetoxEndDialog
+        open={showEndDialog}
+        onClose={handleEndDialogClose}
+        onConfirm={handleEndDialogConfirm}
+        currentDuration={formattedTime}
+      />
     </Box>
   );
 };

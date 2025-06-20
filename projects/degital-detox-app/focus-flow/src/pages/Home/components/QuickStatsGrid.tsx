@@ -44,45 +44,43 @@ interface StatItemProps {
 }
 
 const StatItem: React.FC<StatItemProps> = ({ icon, title, value, gradientType }) => (
-  <Box sx={{ width: '50%', p: 1 }}>
-    <StatCard>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, textAlign: 'center' }}>
-        <StatIcon gradientType={gradientType} sx={{ margin: '0 auto 8px' }}>
-          {icon}
-        </StatIcon>
-        
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ fontSize: '0.75rem', mb: 0.5 }}
-        >
-          {title}
-        </Typography>
-        
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 700,
-            color: 'text.primary',
-            fontSize: '1.25rem',
-          }}
-        >
-          {value}
-        </Typography>
-      </CardContent>
-    </StatCard>
-  </Box>
+  <StatCard>
+    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, textAlign: 'center' }}>
+      <StatIcon gradientType={gradientType} sx={{ margin: '0 auto 8px' }}>
+        {icon}
+      </StatIcon>
+      
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ fontSize: '0.75rem', mb: 0.5 }}
+      >
+        {title}
+      </Typography>
+      
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          color: 'text.primary',
+          fontSize: '1.25rem',
+        }}
+      >
+        {value}
+      </Typography>
+    </CardContent>
+  </StatCard>
 );
 
 export const QuickStatsGrid: React.FC = () => {
   const { state } = useAppContext();
   
-  // モックデータ（実際のアプリケーションでは state.user.stats から取得）
-  const stats = {
-    screenTime: 3.4 * 60 * 60 * 1000, // 3時間24分をミリ秒で
-    focusSessions: 5,
-    detoxTime: 1.5 * 60 * 60 * 1000, // 1時間30分をミリ秒で
-    productivityGain: 23,
+  // 実際のユーザー統計データを使用
+  const stats = state.user?.stats || {
+    screenTime: 0,
+    focusSessions: 0,
+    detoxTime: 0,
+    productivityGain: 0,
   };
 
   const statItems: StatItemProps[] = [
@@ -114,12 +112,12 @@ export const QuickStatsGrid: React.FC = () => {
 
   return (
     <Box sx={{ 
-      display: 'flex', 
-      flexWrap: 'wrap', 
-      gap: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      px: 2
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, 1fr)',
+      gap: 2,
+      px: 2,
+      maxWidth: 600,
+      mx: 'auto'
     }}>
       {statItems.map((item, index) => (
         <StatItem key={index} {...item} />
