@@ -59,7 +59,7 @@ export const SESSION_DURATIONS = {
 export const PHASE_COLORS = {
   inhale: '#2A9D8F',   // ターコイズ（吸う）
   hold: '#F4A261',     // オレンジ（止める）
-  exhale: '#264653'    // 深海ブルー（吐く）
+  exhale: '#0099FF'    // 深海ブルー（吐く）
 } as const;
 
 export interface BreathingSessionData {

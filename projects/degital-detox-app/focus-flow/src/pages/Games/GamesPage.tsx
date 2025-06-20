@@ -3,12 +3,13 @@ import { Box, Typography, Card, CardContent, CardActionArea } from '@mui/materia
 import { styled } from '@mui/material/styles';
 import {
   Air as BreathingIcon,
-  Psychology as MemoryIcon,
+  Memory as DNBIcon,
   Pattern as PatternIcon,
   Visibility as AttentionIcon,
 } from '@mui/icons-material';
 import { GAME_DURATIONS, GAME_TYPES } from '../../constants';
 import { BreathingMeditationGame } from '../../components/games/BreathingMeditationGame';
+import { DNBGame } from '../../components/games/DNBGame';
 
 const GameCard = styled(Card)(({ theme }) => ({
   borderRadius: 16,
@@ -81,6 +82,8 @@ export const GamesPage: React.FC = () => {
   const handleGameClick = (gameType: string) => {
     if (gameType === GAME_TYPES.BREATHING) {
       setCurrentGame(GAME_TYPES.BREATHING);
+    } else if (gameType === GAME_TYPES.DNB) {
+      setCurrentGame(GAME_TYPES.DNB);
     } else {
       // TODO: 他のゲームの実装
       console.log(`Starting ${gameType} game`);
@@ -96,31 +99,36 @@ export const GamesPage: React.FC = () => {
     return <BreathingMeditationGame onBack={handleBackToGames} />;
   }
 
+  // DNBゲーム画面を表示
+  if (currentGame === GAME_TYPES.DNB) {
+    return <DNBGame onBack={handleBackToGames} />;
+  }
+
   const games = [
     {
       title: '呼吸瞑想',
-      duration: `${GAME_DURATIONS[GAME_TYPES.BREATHING] / 60}分間`,
+      duration: `3-10分`,
       icon: <BreathingIcon />,
       gradient: 'linear-gradient(135deg, #2A9D8F, #4FBDAA)',
       onClick: () => handleGameClick(GAME_TYPES.BREATHING),
     },
     {
-      title: '数字記憶',
-      duration: `${GAME_DURATIONS[GAME_TYPES.MEMORY] / 60}分間`,
-      icon: <MemoryIcon />,
+      title: 'Dual N-Back',
+      duration: `2分`,
+      icon: <DNBIcon />,
       gradient: 'linear-gradient(135deg, #E76F51, #F0A690)',
-      onClick: () => handleGameClick(GAME_TYPES.MEMORY),
+      onClick: () => handleGameClick(GAME_TYPES.DNB),
     },
     {
       title: 'パターン認識',
-      duration: `${GAME_DURATIONS[GAME_TYPES.PATTERN] / 60}分間`,
+      duration: `5分`,
       icon: <PatternIcon />,
       gradient: 'linear-gradient(135deg, #264653, #457B9D)',
       onClick: () => handleGameClick(GAME_TYPES.PATTERN),
     },
     {
       title: '注意力テスト',
-      duration: `${GAME_DURATIONS[GAME_TYPES.ATTENTION] / 60}分間`,
+      duration: `5分`,
       icon: <AttentionIcon />,
       gradient: 'linear-gradient(135deg, #457B9D, #A8DADC)',
       onClick: () => handleGameClick(GAME_TYPES.ATTENTION),
@@ -139,7 +147,7 @@ export const GamesPage: React.FC = () => {
           fontWeight: 600,
         }}
       >
-        集中力トレーニング
+       Focus Training
       </Typography>
 
       <Typography

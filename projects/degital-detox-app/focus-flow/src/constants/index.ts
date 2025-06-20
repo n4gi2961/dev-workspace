@@ -8,15 +8,15 @@ export const NAVIGATION_TABS = {
 
 export const GAME_TYPES = {
   BREATHING: 'breathing',
-  MEMORY: 'memory',
+  DNB: 'dnb',              // Dual N-Back (旧MEMORY)
   PATTERN: 'pattern',
   ATTENTION: 'attention',
 } as const;
 
 export const GAME_DURATIONS = {
   [GAME_TYPES.BREATHING]: 5 * 60, // 5分
-  [GAME_TYPES.MEMORY]: 3 * 60,   // 3分
-  [GAME_TYPES.PATTERN]: 5 * 60,  // 5分
+  [GAME_TYPES.DNB]: 5 * 60,       // 5分 (動的に変化)
+  [GAME_TYPES.PATTERN]: 5 * 60,   // 5分
   [GAME_TYPES.ATTENTION]: 7 * 60, // 7分
 } as const;
 
