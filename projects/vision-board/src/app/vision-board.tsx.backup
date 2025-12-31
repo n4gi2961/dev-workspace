@@ -1,0 +1,1571 @@
+'use client'
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical } from 'lucide-react';
+import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
+import { BLOCK_TYPES, NODE_TYPES, IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
+import { HOVER_FONT_CONFIG, ROUTINE_COLORS, FONT_OPTIONS, SIZE_OPTIONS, COLOR_OPTIONS_DARK, COLOR_OPTIONS_LIGHT } from '@/constants/styles';
+import { CATEGORIES, DECADES, SAMPLE_IMAGES } from '@/constants/ui';
+import { generateId, getRandomColor, getTodayString, getWeekDates, getMonthDates, getDayLabel } from '@/lib/utils';
+import { getEncouragementMessage } from '@/lib/messages';
+import { createInitialBlocks, createInitialPage } from '@/lib/initialData';
+import { LiquidFillProgress } from '@/components/ui/LiquidFillProgress';
+import { DraggableItem } from '@/components/ui/DraggableItem';
+import { ColorPicker } from '@/components/ui/ColorPicker';
+import { FontSizeSelector } from '@/components/ui/FontSizeSelector';
+import { BlockAddMenu } from '@/components/ui/BlockAddMenu';
+import { TextToolbar } from '@/components/ui/TextToolbar';
+import { ZoomControl } from '@/components/ui/ZoomControl';
+import { AmbientMode } from '@/components/ui/AmbientMode';
+import { WallpaperExportModal } from '@/components/ui/WallpaperExportModal';
+import { ShapeSelector } from '@/components/ui/ShapeSelector';
+import { MilestoneInput } from '@/components/ui/MilestoneInput';
+import { RoutineWeeklyTable } from '@/components/ui/RoutineWeeklyTable';
+import { DataCalendar } from '@/components/ui/DataCalendar';
+import { DraggableTextNode } from '@/components/features/DraggableTextNode';
+import { DraggableImageNode } from '@/components/features/DraggableImageNode';
+
+// Recursive Block Component
+const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, darkMode, depth = 0, focusId, setFocusId }) => {
+  const [isOpen, setIsOpen] = useState(block.isOpen ?? true);
+  const [isHovered, setIsHovered] = useState(false);
+  const inputRef = useRef(null);
+  const textareaRef = useRef(null);
+  
+  useEffect(() => {
+    if (focusId === block.id) {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      } else if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+      setFocusId(null);
+    }
+  }, [focusId, block.id, setFocusId]);
+
+  const adjustTextareaHeight = (textarea) => {
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.max(32, textarea.scrollHeight) + 'px';
+    }
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      adjustTextareaHeight(textareaRef.current);
+    }
+  }, [block.content]);
+  
+  const handleContentChange = (e) => {
+    const value = e.target.value;
+    
+    if (value === '[] ' || value === '[]') {
+      onChange({ ...block, type: BLOCK_TYPES.CHECKBOX, content: '', checked: false });
+      return;
+    }
+    if (value === '> ') {
+      onChange({ ...block, type: BLOCK_TYPES.TOGGLE, content: '', children: block.children || [] });
+      return;
+    }
+    
+    onChange({ ...block, content: value });
+    
+    if (e.target.tagName === 'TEXTAREA') {
+      adjustTextareaHeight(e.target);
+    }
+  };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const cursorPos = e.target.selectionStart;
+      const content = block.content;
+      const beforeCursor = content.slice(0, cursorPos);
+      const afterCursor = content.slice(cursorPos);
+      
+      onChange({ ...block, content: beforeCursor });
+      
+      const newBlockId = generateId();
+      const newBlock = {
+        id: newBlockId,
+        type: BLOCK_TYPES.TEXT,
+        content: afterCursor,
+        checked: false,
+        isOpen: true,
+        children: [],
+      };
+      onAddAfter(newBlock, newBlockId);
+    }
+  };
+  
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    onChange({ ...block, isOpen: newIsOpen });
+  };
+  
+  const handleCheckboxToggle = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onChange({ ...block, checked: !block.checked });
+  };
+
+  const handleChildChange = (updatedChild) => {
+    const newChildren = (block.children || []).map(c => c.id === updatedChild.id ? updatedChild : c);
+    onChange({ ...block, children: newChildren });
+  };
+
+  const handleChildDelete = (childId) => {
+    const newChildren = (block.children || []).filter(c => c.id !== childId);
+    onChange({ ...block, children: newChildren });
+  };
+
+  const handleAddChildAfter = (afterId, newBlock, focusNewId) => {
+    const children = block.children || [];
+    const index = children.findIndex(c => c.id === afterId);
+    const newChildren = [...children.slice(0, index + 1), newBlock, ...children.slice(index + 1)];
+    onChange({ ...block, children: newChildren });
+    if (focusNewId) setFocusId(focusNewId);
+  };
+
+  const addChildBlock = (type = BLOCK_TYPES.TEXT) => {
+    const newBlockId = generateId();
+    const newBlock = {
+      id: newBlockId,
+      type,
+      content: '',
+      checked: false,
+      isOpen: true,
+      children: [],
+    };
+    onChange({ ...block, children: [...(block.children || []), newBlock] });
+    setFocusId(newBlockId);
+  };
+
+  const handleAddBlockType = (type) => {
+    onAddBlockType(block.id, type);
+  };
+
+  const baseInputStyle = `w-full bg-transparent border-none outline-none resize-none ${
+    darkMode ? 'text-white placeholder-gray-500' : 'text-gray-800 placeholder-gray-400'
+  }`;
+
+  switch (block.type) {
+    case BLOCK_TYPES.HEADING:
+      return (
+        <div 
+          className="group flex items-center gap-1 py-1"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className={`w-6 flex-shrink-0 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <BlockAddMenu onAdd={handleAddBlockType} darkMode={darkMode} />
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            value={block.content}
+            onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
+            placeholder="見出し"
+            className={`${baseInputStyle} text-xl font-bold`}
+          />
+          <button 
+            onClick={onDelete} 
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`p-1 hover:bg-red-500/20 rounded transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <Trash2 size={14} className="text-red-400" />
+          </button>
+        </div>
+      );
+    
+    case BLOCK_TYPES.TEXT:
+      return (
+        <div 
+          className="group flex items-start gap-1 py-0.5"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className={`w-6 flex-shrink-0 pt-1 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <BlockAddMenu onAdd={handleAddBlockType} darkMode={darkMode} />
+          </div>
+          <textarea
+            ref={textareaRef}
+            value={block.content}
+            onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
+            placeholder="テキストを入力"
+            className={`${baseInputStyle} text-base leading-relaxed overflow-hidden`}
+            style={{ minHeight: '32px', resize: 'none' }}
+          />
+          <button 
+            onClick={onDelete}
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`p-1 hover:bg-red-500/20 rounded mt-0.5 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <Trash2 size={14} className="text-red-400" />
+          </button>
+        </div>
+      );
+    
+    case BLOCK_TYPES.TOGGLE:
+      return (
+        <div 
+          className="py-0.5"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className="group flex items-center gap-1">
+            <div className={`w-6 flex-shrink-0 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+              <BlockAddMenu onAdd={handleAddBlockType} darkMode={darkMode} />
+            </div>
+            <button 
+              onClick={handleToggle}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="p-1 hover:bg-white/10 rounded transition-colors"
+            >
+              {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={block.content}
+              onChange={handleContentChange}
+              onKeyDown={handleKeyDown}
+              placeholder="テキストを入力"
+              className={`${baseInputStyle} font-medium`}
+            />
+            <button 
+              onClick={onDelete}
+              onMouseDown={(e) => e.stopPropagation()}
+              className={`p-1 hover:bg-red-500/20 rounded transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+            >
+              <Trash2 size={14} className="text-red-400" />
+            </button>
+          </div>
+          {isOpen && (
+            <div className={`ml-7 mt-1 pl-4 border-l-2 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+              {(block.children || []).map(child => (
+                <Block
+                  key={child.id}
+                  block={child}
+                  onChange={handleChildChange}
+                  onDelete={() => handleChildDelete(child.id)}
+                  onAddAfter={(newBlock, focusNewId) => handleAddChildAfter(child.id, newBlock, focusNewId)}
+                  onAddBlockType={(afterId, type) => {
+                    const newBlockId = generateId();
+                    const newBlock = {
+                      id: newBlockId,
+                      type,
+                      content: '',
+                      checked: false,
+                      isOpen: true,
+                      children: [],
+                    };
+                    handleAddChildAfter(afterId, newBlock, newBlockId);
+                  }}
+                  darkMode={darkMode}
+                  depth={depth + 1}
+                  focusId={focusId}
+                  setFocusId={setFocusId}
+                />
+              ))}
+              <button
+                onClick={() => addChildBlock()}
+                onMouseDown={(e) => e.stopPropagation()}
+                className={`flex items-center gap-1 mt-1 ml-1 px-2 py-1 rounded text-xs transition-colors ${
+                  darkMode ? 'text-gray-500 hover:text-gray-300 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Plus size={12} /> ブロックを追加
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    
+    case BLOCK_TYPES.CHECKBOX:
+      return (
+        <div 
+          className="group flex items-center gap-1 py-0.5"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className={`w-6 flex-shrink-0 transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <BlockAddMenu onAdd={handleAddBlockType} darkMode={darkMode} />
+          </div>
+          <button 
+            onClick={handleCheckboxToggle}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="p-1 hover:bg-white/10 rounded transition-colors"
+          >
+            {block.checked ? (
+              <CheckSquare size={18} className="text-emerald-400" />
+            ) : (
+              <Square size={18} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+            )}
+          </button>
+          <input
+            ref={inputRef}
+            type="text"
+            value={block.content}
+            onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
+            placeholder="テキストを入力"
+            className={`${baseInputStyle} ${block.checked ? 'line-through opacity-60' : ''}`}
+          />
+          <button 
+            onClick={onDelete}
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`p-1 hover:bg-red-500/20 rounded transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <Trash2 size={14} className="text-red-400" />
+          </button>
+        </div>
+      );
+    
+    default:
+      return null;
+  }
+};
+
+// Routine Weekly Table Component
+const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAddRoutine, onDeleteRoutine, onUpdateRoutineColor, onReorder, darkMode }) => {
+  const [newRoutineTitle, setNewRoutineTitle] = useState('');
+  const [dragIndex, setDragIndex] = useState(null);
+  const weekDates = getWeekDates(weekOffset);
+  const todayString = getTodayString();
+
+  const handleAddRoutine = () => {
+    if (newRoutineTitle.trim()) {
+      onAddRoutine(newRoutineTitle.trim());
+      setNewRoutineTitle('');
+    }
+  };
+
+  const handleDragStart = (index) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (index) => {
+    // Visual feedback handled in component
+  };
+
+  const handleDrop = (targetIndex) => {
+    if (dragIndex !== null && dragIndex !== targetIndex) {
+      onReorder(dragIndex, targetIndex);
+    }
+    setDragIndex(null);
+  };
+
+  return (
+    <div className={`rounded-lg overflow-hidden ${darkMode ? 'bg-gray-800/50' : 'bg-gray-100'}`}>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className={darkMode ? 'bg-gray-700/50' : 'bg-gray-200'}>
+            <th className="w-8"></th>
+            <th className={`py-2 px-3 text-left font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              タスク
+            </th>
+            {weekDates.map((date, idx) => {
+              const isToday = date === todayString;
+              return (
+                <th 
+                  key={date} 
+                  className={`py-2 px-2 text-center font-medium w-10 ${
+                    isToday 
+                      ? 'bg-violet-500/20 text-violet-400' 
+                      : darkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                >
+                  <div>{getDayLabel(idx)}</div>
+                  <div className="text-xs opacity-60">{date.slice(8)}</div>
+                </th>
+              );
+            })}
+            <th className="w-8"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {routines.map((routine, index) => (
+            <tr 
+              key={routine.id} 
+              className={`border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => { e.preventDefault(); handleDragOver(index); }}
+              onDrop={() => handleDrop(index)}
+            >
+              <td className="py-2 px-1">
+                <div className={`cursor-grab active:cursor-grabbing p-1 rounded ${
+                  darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                }`}>
+                  <GripVertical size={14} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
+                </div>
+              </td>
+              <td className={`py-2 px-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                <div className="flex items-center gap-2">
+                  <ColorPicker
+                    color={routine.color || '#8b5cf6'}
+                    onChange={(color) => onUpdateRoutineColor(routine.id, color)}
+                    darkMode={darkMode}
+                  />
+                  {routine.title}
+                </div>
+              </td>
+              {weekDates.map((date, idx) => {
+                const isChecked = routine.history?.[date] || false;
+                const isToday = date === todayString;
+                const isFuture = date > todayString;
+                return (
+                  <td 
+                    key={date} 
+                    className={`py-2 px-2 text-center ${isToday ? 'bg-violet-500/10' : ''}`}
+                  >
+                    {isFuture ? (
+                      <span className="text-gray-500">-</span>
+                    ) : (
+                      <button
+                        onClick={() => onToggleRoutine(routine.id, date)}
+                        className={`w-6 h-6 rounded flex items-center justify-center transition-colors`}
+                        style={{
+                          backgroundColor: isChecked ? routine.color || '#8b5cf6' : (darkMode ? '#4b5563' : '#d1d5db'),
+                        }}
+                      >
+                        {isChecked && <Check size={14} className="text-white" />}
+                      </button>
+                    )}
+                  </td>
+                );
+              })}
+              <td className="py-2 px-1">
+                <button
+                  onClick={() => onDeleteRoutine(routine.id)}
+                  className="p-1 hover:bg-red-500/20 rounded opacity-50 hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={12} className="text-red-400" />
+                </button>
+              </td>
+            </tr>
+          ))}
+          <tr className={`border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <td colSpan={10} className="py-2 px-3">
+              <div className="flex items-center gap-2 ml-6">
+                <input
+                  type="text"
+                  value={newRoutineTitle}
+                  onChange={(e) => setNewRoutineTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddRoutine()}
+                  placeholder="新しいルーティンを追加..."
+                  className={`flex-1 bg-transparent border-none outline-none text-sm ${
+                    darkMode ? 'text-gray-300 placeholder-gray-500' : 'text-gray-700 placeholder-gray-400'
+                  }`}
+                />
+                <button
+                  onClick={handleAddRoutine}
+                  disabled={!newRoutineTitle.trim()}
+                  className={`p-1 rounded transition-colors ${
+                    newRoutineTitle.trim()
+                      ? 'hover:bg-violet-500/20 text-violet-400'
+                      : 'text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// Data Calendar Component
+const DataCalendar = ({ routines, milestones, darkMode }) => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const todayString = getTodayString();
+  
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthDates = getMonthDates(year, month);
+  
+  const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+  
+  // Get milestone completion dates
+  const milestoneDates = new Set(
+    milestones
+      .filter(m => m.completedAt)
+      .map(m => new Date(m.completedAt).toISOString().split('T')[0])
+  );
+
+  const goToPrevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  return (
+    <div className={`rounded-xl p-4 ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={goToPrevMonth}
+          className={`p-2 rounded-lg transition-colors ${
+            darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'
+          }`}
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex items-center gap-3">
+          <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+            {year}年 {monthNames[month]}
+          </span>
+          <button
+            onClick={goToToday}
+            className={`px-3 py-1 rounded-lg text-xs font-medium ${
+              darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            今日
+          </button>
+        </div>
+        <button
+          onClick={goToNextMonth}
+          className={`p-2 rounded-lg transition-colors ${
+            darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-200 text-gray-500'
+          }`}
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      {/* Day labels */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['月', '火', '水', '木', '金', '土', '日'].map(day => (
+          <div 
+            key={day} 
+            className={`text-center text-xs font-medium py-1 ${
+              darkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {monthDates.map(({ date, isCurrentMonth }, idx) => {
+          const isToday = date === todayString;
+          const hasMilestone = milestoneDates.has(date);
+          const isFuture = date > todayString;
+          
+          // Get routine completions for this date
+          const routineCompletions = routines.map(r => ({
+            color: r.color || '#8b5cf6',
+            completed: r.history?.[date] || false,
+          })).filter(r => r.completed);
+
+          return (
+            <div
+              key={idx}
+              className={`relative aspect-square p-1 rounded-lg transition-colors ${
+                !isCurrentMonth 
+                  ? 'opacity-30' 
+                  : isToday 
+                    ? 'bg-violet-500/20 ring-2 ring-violet-500' 
+                    : darkMode 
+                      ? 'hover:bg-gray-700' 
+                      : 'hover:bg-gray-200'
+              }`}
+            >
+              <div className={`text-xs text-center ${
+                isToday 
+                  ? 'text-violet-400 font-bold' 
+                  : darkMode 
+                    ? 'text-gray-300' 
+                    : 'text-gray-700'
+              }`}>
+                {parseInt(date.slice(8))}
+              </div>
+              
+              {/* Routine dots */}
+              {routineCompletions.length > 0 && !isFuture && (
+                <div className="flex flex-wrap justify-center gap-0.5 mt-0.5">
+                  {routineCompletions.slice(0, 4).map((r, i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: r.color }}
+                    />
+                  ))}
+                  {routineCompletions.length > 4 && (
+                    <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      +{routineCompletions.length - 4}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Milestone star */}
+              {hasMilestone && (
+                <div className="absolute top-0 right-0">
+                  <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          凡例
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {routines.map(r => (
+            <div key={r.id} className="flex items-center gap-1.5">
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: r.color || '#8b5cf6' }}
+              />
+              <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {r.title}
+              </span>
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5">
+            <Star size={12} className="text-yellow-400 fill-yellow-400" />
+            <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              マイルストーン達成
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Page Editor Component
+const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }) => {
+  const [focusId, setFocusId] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [dragMilestoneIndex, setDragMilestoneIndex] = useState(null);
+  
+  const tabs = [
+    { id: 'overview', label: '概要', icon: FileText },
+    { id: 'milestones', label: 'マイルストーン', icon: Target },
+    { id: 'routines', label: 'ルーティン', icon: Calendar },
+    { id: 'data', label: 'データ', icon: BarChart3 },
+  ];
+
+  const updateField = (field, value) => {
+    onUpdate({ ...page, [field]: value, updatedAt: Date.now() });
+  };
+
+  // Milestone functions
+  const addMilestone = (title) => {
+    const newMilestone = {
+      id: generateId(),
+      title,
+      completed: false,
+      completedAt: null,
+    };
+    updateField('milestones', [...(page.milestones || []), newMilestone]);
+  };
+
+  const toggleMilestone = (id) => {
+    const milestones = (page.milestones || []).map(m => {
+      if (m.id === id) {
+        return {
+          ...m,
+          completed: !m.completed,
+          completedAt: !m.completed ? Date.now() : null,
+        };
+      }
+      return m;
+    });
+    updateField('milestones', milestones);
+  };
+
+  const deleteMilestone = (id) => {
+    updateField('milestones', (page.milestones || []).filter(m => m.id !== id));
+  };
+
+  const reorderMilestones = (fromIndex, toIndex) => {
+    const milestones = [...(page.milestones || [])];
+    const [moved] = milestones.splice(fromIndex, 1);
+    milestones.splice(toIndex, 0, moved);
+    updateField('milestones', milestones);
+  };
+
+  // Routine functions
+  const addRoutine = (title) => {
+    const newRoutine = {
+      id: generateId(),
+      title,
+      color: getRandomColor(),
+      history: {},
+    };
+    updateField('routines', [...(page.routines || []), newRoutine]);
+  };
+
+  const toggleRoutine = (routineId, date) => {
+    const routines = (page.routines || []).map(r => {
+      if (r.id === routineId) {
+        const newHistory = { ...r.history };
+        newHistory[date] = !newHistory[date];
+        return { ...r, history: newHistory };
+      }
+      return r;
+    });
+    updateField('routines', routines);
+  };
+
+  const deleteRoutine = (id) => {
+    updateField('routines', (page.routines || []).filter(r => r.id !== id));
+  };
+
+  const updateRoutineColor = (id, color) => {
+    const routines = (page.routines || []).map(r => {
+      if (r.id === id) {
+        return { ...r, color };
+      }
+      return r;
+    });
+    updateField('routines', routines);
+  };
+
+  const reorderRoutines = (fromIndex, toIndex) => {
+    const routines = [...(page.routines || [])];
+    const [moved] = routines.splice(fromIndex, 1);
+    routines.splice(toIndex, 0, moved);
+    updateField('routines', routines);
+  };
+
+  // Calculate stats
+  const completedMilestones = (page.milestones || []).filter(m => m.completed).length;
+  const totalMilestones = (page.milestones || []).length;
+  const milestoneProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+
+  const todayString = getTodayString();
+  const todayRoutines = page.routines || [];
+  const todayCompleted = todayRoutines.filter(r => r.history?.[todayString]).length;
+  const todayTotal = todayRoutines.length;
+  const todayProgress = todayTotal > 0 ? Math.round((todayCompleted / todayTotal) * 100) : 0;
+
+  const calculateRoutineRate = () => {
+    const routines = page.routines || [];
+    if (routines.length === 0) return 0;
+    
+    const last30Days = [];
+    const today = new Date();
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      last30Days.push(date.toISOString().split('T')[0]);
+    }
+    
+    let totalChecks = 0;
+    let possibleChecks = routines.length * 30;
+    
+    routines.forEach(r => {
+      last30Days.forEach(date => {
+        if (r.history?.[date]) totalChecks++;
+      });
+    });
+    
+    return Math.round((totalChecks / possibleChecks) * 100);
+  };
+
+  const routineRate = calculateRoutineRate();
+
+  return (
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${darkMode ? 'bg-black/80' : 'bg-white/80'} backdrop-blur-md`}
+      onClick={onClose}
+    >
+      <div 
+        className={`w-full max-w-4xl h-[90vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col ${
+          darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Image */}
+        <div 
+          className="bg-cover bg-center relative flex-shrink-0"
+          style={{ 
+            height: '27vh',
+            backgroundImage: page.headerImage || nodeImage ? `url(${page.headerImage || nodeImage})` : undefined,
+            backgroundColor: !page.headerImage && !nodeImage ? (darkMode ? '#374151' : '#e5e7eb') : undefined,
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 p-2 bg-black/30 hover:bg-black/50 rounded-lg transition-colors"
+          >
+            <X size={20} className="text-white" />
+          </button>
+          {!page.headerImage && !nodeImage && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ImagePlus size={48} className={darkMode ? 'text-gray-600' : 'text-gray-400'} />
+            </div>
+          )}
+          
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <input
+              type="text"
+              value={page.title}
+              onChange={(e) => updateField('title', e.target.value)}
+              placeholder="目標のタイトル"
+              className="w-full text-3xl font-bold bg-transparent border-none outline-none text-white placeholder-white/50 drop-shadow-lg"
+            />
+          </div>
+        </div>
+
+        {/* Meta Info */}
+        <div className={`px-6 py-3 border-b flex-shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={page.category || ''}
+              onChange={(e) => updateField('category', e.target.value || null)}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                darkMode 
+                  ? 'bg-gray-800 text-gray-300 border-gray-600' 
+                  : 'bg-gray-100 text-gray-700 border-gray-200'
+              } border outline-none`}
+            >
+              <option value="">カテゴリー未設定</option>
+              {CATEGORIES.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={page.targetDecade || ''}
+              onChange={(e) => updateField('targetDecade', e.target.value || null)}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                darkMode 
+                  ? 'bg-gray-800 text-gray-300 border-gray-600' 
+                  : 'bg-gray-100 text-gray-700 border-gray-200'
+              } border outline-none`}
+            >
+              <option value="">期限未設定</option>
+              {DECADES.map(dec => (
+                <option key={dec.id} value={dec.id}>{dec.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className={`flex border-b flex-shrink-0 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? darkMode 
+                    ? 'text-violet-400 border-b-2 border-violet-400' 
+                    : 'text-violet-600 border-b-2 border-violet-600'
+                  : darkMode
+                    ? 'text-gray-400 hover:text-gray-200'
+                    : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    概要・メモ
+                  </label>
+                  <textarea
+                    value={page.description || ''}
+                    onChange={(e) => updateField('description', e.target.value)}
+                    placeholder="この目標について自由に記述..."
+                    rows={4}
+                    className={`w-full px-4 py-3 rounded-lg resize-none ${
+                      darkMode 
+                        ? 'bg-gray-800 text-gray-200 placeholder-gray-500 border-gray-600' 
+                        : 'bg-gray-100 text-gray-700 placeholder-gray-400 border-gray-200'
+                    } border outline-none focus:ring-2 focus:ring-violet-500/50`}
+                  />
+                </div>
+
+                {/* Stats with Liquid Fill */}
+                <div className="grid grid-cols-3 gap-4">
+                  <LiquidFillProgress
+                    percentage={milestoneProgress}
+                    color="violet"
+                    label="マイルストーン進捗"
+                    darkMode={darkMode}
+                    message={getEncouragementMessage(milestoneProgress, 'milestone')}
+                  />
+                  <LiquidFillProgress
+                    percentage={todayProgress}
+                    color="rose"
+                    label="今日のルーティン"
+                    darkMode={darkMode}
+                    message={getEncouragementMessage(todayProgress, 'today')}
+                  />
+                  <LiquidFillProgress
+                    percentage={routineRate}
+                    color="emerald"
+                    label="継続率 (30日)"
+                    darkMode={darkMode}
+                    message={getEncouragementMessage(routineRate, 'streak')}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Milestones Tab */}
+            {activeTab === 'milestones' && (
+              <div className="space-y-3">
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  目標達成までの中長期的なステップを管理します。ドラッグで並び替え可能です。
+                </p>
+                
+                {(page.milestones || []).map((milestone, idx) => (
+                  <div 
+                    key={milestone.id}
+                    draggable
+                    onDragStart={() => setDragMilestoneIndex(idx)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragMilestoneIndex !== null && dragMilestoneIndex !== idx) {
+                        reorderMilestones(dragMilestoneIndex, idx);
+                      }
+                      setDragMilestoneIndex(null);
+                    }}
+                    className={`flex items-center gap-2 p-3 rounded-lg ${
+                      darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-gray-100 hover:bg-gray-150'
+                    } group ${dragMilestoneIndex === idx ? 'opacity-50' : ''}`}
+                  >
+                    <div className={`cursor-grab active:cursor-grabbing p-1 rounded ${
+                      darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                    }`}>
+                      <GripVertical size={14} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
+                    </div>
+                    <button
+                      onClick={() => toggleMilestone(milestone.id)}
+                      className="flex-shrink-0"
+                    >
+                      {milestone.completed ? (
+                        <CheckSquare size={20} className="text-emerald-400" />
+                      ) : (
+                        <Square size={20} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
+                      )}
+                    </button>
+                    <span className={`flex-1 ${
+                      milestone.completed 
+                        ? 'line-through opacity-60' 
+                        : darkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
+                      {milestone.title}
+                    </span>
+                    {milestone.completedAt && (
+                      <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {new Date(milestone.completedAt).toLocaleDateString('ja-JP')}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => deleteMilestone(milestone.id)}
+                      className="p-1 hover:bg-red-500/20 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={14} className="text-red-400" />
+                    </button>
+                  </div>
+                ))}
+
+                <MilestoneInput onAdd={addMilestone} darkMode={darkMode} />
+              </div>
+            )}
+
+            {/* Routines Tab */}
+            {activeTab === 'routines' && (
+              <div className="space-y-4">
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  日々の習慣を管理します。色をクリックして変更、ドラッグで並び替えできます。
+                </p>
+
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setWeekOffset(weekOffset - 1)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      darkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => setWeekOffset(0)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                      weekOffset === 0
+                        ? 'bg-violet-500/20 text-violet-400'
+                        : darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    今週
+                  </button>
+                  <button
+                    onClick={() => setWeekOffset(weekOffset + 1)}
+                    disabled={weekOffset >= 0}
+                    className={`p-2 rounded-lg transition-colors ${
+                      weekOffset >= 0
+                        ? 'opacity-30 cursor-not-allowed'
+                        : darkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+
+                <RoutineWeeklyTable
+                  routines={page.routines || []}
+                  weekOffset={weekOffset}
+                  onToggleRoutine={toggleRoutine}
+                  onAddRoutine={addRoutine}
+                  onDeleteRoutine={deleteRoutine}
+                  onUpdateRoutineColor={updateRoutineColor}
+                  onReorder={reorderRoutines}
+                  darkMode={darkMode}
+                />
+              </div>
+            )}
+
+            {/* Data Tab - Calendar View */}
+            {activeTab === 'data' && (
+              <div className="space-y-6">
+                <DataCalendar
+                  routines={page.routines || []}
+                  milestones={page.milestones || []}
+                  darkMode={darkMode}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Milestone Input Component
+const MilestoneInput = ({ onAdd, darkMode }) => {
+  const [title, setTitle] = useState('');
+
+  const handleSubmit = () => {
+    if (title.trim()) {
+      onAdd(title.trim());
+      setTitle('');
+    }
+  };
+
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-lg ${darkMode ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+      <div className="w-6" />
+      <Square size={20} className={darkMode ? 'text-gray-600' : 'text-gray-300'} />
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+        placeholder="新しいマイルストーンを追加..."
+        className={`flex-1 bg-transparent border-none outline-none ${
+          darkMode ? 'text-gray-200 placeholder-gray-500' : 'text-gray-700 placeholder-gray-400'
+        }`}
+      />
+      <button
+        onClick={handleSubmit}
+        disabled={!title.trim()}
+        className={`p-1.5 rounded-lg transition-colors ${
+          title.trim()
+            ? 'hover:bg-violet-500/20 text-violet-400'
+            : 'text-gray-500 cursor-not-allowed'
+        }`}
+      >
+        <Plus size={18} />
+      </button>
+    </div>
+  );
+};
+
+// Main Vision Board Component
+export default function VisionBoard() {
+  const [darkMode, setDarkMode] = useState(true);
+  const [nodes, setNodes] = useState([]);
+  const [pages, setPages] = useState({});
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [editingPageId, setEditingPageId] = useState(null);
+  const [showHint, setShowHint] = useState(true);
+  const [isPanning, setIsPanning] = useState(false);
+  const [zoom, setZoom] = useState(100);
+  const [showAmbientMode, setShowAmbientMode] = useState(false);
+  const [showWallpaperExport, setShowWallpaperExport] = useState(false);
+  const boardRef = useRef(null);
+  const containerRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+  const initialScrollDone = useRef(false);
+
+  // Scroll to center on initial load
+  useEffect(() => {
+    if (containerRef.current && !initialScrollDone.current) {
+      const container = containerRef.current;
+      const scrollX = (BOARD_WIDTH - container.clientWidth) / 2;
+      const scrollY = (BOARD_HEIGHT - container.clientHeight) / 2;
+      container.scrollLeft = scrollX;
+      container.scrollTop = scrollY;
+      initialScrollDone.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    setNodes(prevNodes => prevNodes.map(node => {
+      if (node.type === NODE_TYPES.TEXT) {
+        if (node.color === '#ffffff' && !darkMode) {
+          return { ...node, color: '#000000' };
+        } else if (node.color === '#000000' && darkMode) {
+          return { ...node, color: '#ffffff' };
+        }
+      }
+      return node;
+    }));
+  }, [darkMode]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleMouseDown = (e) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        setIsPanning(true);
+        panStart.current = {
+          x: e.clientX,
+          y: e.clientY,
+          scrollLeft: container.scrollLeft,
+          scrollTop: container.scrollTop,
+        };
+        container.style.cursor = 'grabbing';
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isPanning) return;
+      e.preventDefault();
+      const dx = e.clientX - panStart.current.x;
+      const dy = e.clientY - panStart.current.y;
+      container.scrollLeft = panStart.current.scrollLeft - dx;
+      container.scrollTop = panStart.current.scrollTop - dy;
+    };
+
+    const handleMouseUp = (e) => {
+      if (e.button === 1 || isPanning) {
+        setIsPanning(false);
+        container.style.cursor = 'default';
+      }
+    };
+
+    container.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      container.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isPanning]);
+
+  const addImageNode = (src) => {
+    const container = containerRef.current;
+    const scrollLeft = container?.scrollLeft || 0;
+    const scrollTop = container?.scrollTop || 0;
+    const containerWidth = container?.clientWidth || 800;
+    const containerHeight = container?.clientHeight || 600;
+    
+    // Place new images near the center of the visible area
+    const centerX = scrollLeft + containerWidth / 2;
+    const centerY = scrollTop + containerHeight / 2;
+    
+    const newNode = {
+      id: generateId(),
+      type: NODE_TYPES.IMAGE,
+      src,
+      x: (centerX - 125 + (Math.random() - 0.5) * 200) / (zoom / 100),
+      y: (centerY - 90 + (Math.random() - 0.5) * 200) / (zoom / 100),
+      width: 250,
+      height: 180,
+      shape: IMAGE_SHAPES.FREE,
+      hoverFontSize: HOVER_FONT_SIZES.MEDIUM,
+      hoverTextColor: HOVER_TEXT_COLORS.WHITE,
+    };
+    setNodes([...nodes, newNode]);
+    setPages({
+      ...pages,
+      [newNode.id]: createInitialPage(),
+    });
+  };
+
+  const addTextNode = (x, y) => {
+    const newNode = {
+      id: generateId(),
+      type: NODE_TYPES.TEXT,
+      content: '',
+      x: x / (zoom / 100),
+      y: y / (zoom / 100),
+      width: 200,
+      height: 40,
+      fontSize: 16,
+      color: darkMode ? '#ffffff' : '#000000',
+      fontFamily: "'Noto Sans JP', sans-serif",
+      isNew: true,
+    };
+    setNodes([...nodes, newNode]);
+    setSelectedNode(newNode.id);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        addImageNode(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const updateNode = (updatedNode) => {
+    setNodes(nodes.map(n => n.id === updatedNode.id ? updatedNode : n));
+  };
+
+  const deleteNode = (nodeId) => {
+    setNodes(nodes.filter(n => n.id !== nodeId));
+    const newPages = { ...pages };
+    delete newPages[nodeId];
+    setPages(newPages);
+    if (selectedNode === nodeId) {
+      setSelectedNode(null);
+    }
+  };
+
+  const updatePage = (pageData) => {
+    setPages({
+      ...pages,
+      [editingPageId]: pageData,
+    });
+  };
+
+  const handleToggleRoutine = (nodeId, routineId, date) => {
+    const page = pages[nodeId];
+    if (!page) return;
+
+    const routines = (page.routines || []).map(r => {
+      if (r.id === routineId) {
+        const newHistory = { ...r.history };
+        newHistory[date] = !newHistory[date];
+        return { ...r, history: newHistory };
+      }
+      return r;
+    });
+
+    setPages({
+      ...pages,
+      [nodeId]: { ...page, routines, updatedAt: Date.now() },
+    });
+  };
+
+  const handleBoardDoubleClick = (e) => {
+    if (e.target === boardRef.current) {
+      const container = containerRef.current;
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left + container.scrollLeft;
+      const y = e.clientY - rect.top + container.scrollTop;
+      addTextNode(x, y);
+    }
+  };
+
+  const handleBoardClick = (e) => {
+    if (e.target === boardRef.current) {
+      setSelectedNode(null);
+    }
+  };
+
+  const handleZoomChange = (newZoom) => {
+    const container = containerRef.current;
+    if (!container) {
+      setZoom(newZoom);
+      return;
+    }
+
+    // Calculate center point before zoom
+    const centerX = container.scrollLeft + container.clientWidth / 2;
+    const centerY = container.scrollTop + container.clientHeight / 2;
+    
+    // Calculate the board position at center
+    const boardCenterX = centerX / (zoom / 100);
+    const boardCenterY = centerY / (zoom / 100);
+    
+    // Apply new zoom
+    setZoom(newZoom);
+    
+    // Adjust scroll to keep the same board position at center
+    requestAnimationFrame(() => {
+      const newCenterX = boardCenterX * (newZoom / 100);
+      const newCenterY = boardCenterY * (newZoom / 100);
+      container.scrollLeft = newCenterX - container.clientWidth / 2;
+      container.scrollTop = newCenterY - container.clientHeight / 2;
+    });
+  };
+
+  const editingPage = editingPageId ? pages[editingPageId] : null;
+  const editingNode = editingPageId ? nodes.find(n => n.id === editingPageId) : null;
+
+  return (
+    <div 
+      className={`h-screen flex flex-col transition-colors duration-300 ${
+        darkMode ? 'bg-gray-950' : 'bg-gray-50'
+      }`}
+      style={{ fontFamily: "'Noto Sans JP', 'SF Pro Display', -apple-system, sans-serif" }}
+    >
+      {/* Toolbar */}
+      <div className={`flex-shrink-0 ${
+        darkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'
+      } border-b backdrop-blur-xl z-40`}>
+        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className={`text-xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+                Vision Board
+              </span>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+              <button
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  darkMode 
+                    ? 'bg-gray-800 hover:bg-gray-700 text-white' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                <ImagePlus size={16} />
+                サンプル画像
+              </button>
+              <div className={`absolute top-full right-0 mt-2 p-2 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all ${
+                darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
+              }`}>
+                <div className="grid grid-cols-2 gap-2">
+                  {SAMPLE_IMAGES.map((src, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => addImageNode(src)}
+                      className="w-20 h-16 rounded-lg overflow-hidden hover:ring-2 hover:ring-violet-500 transition-all"
+                    >
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
+            >
+              <Plus size={16} />
+              画像を追加
+            </button>
+
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2.5 rounded-xl transition-all ${
+                darkMode 
+                  ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Board Container */}
+      <div 
+        ref={containerRef}
+        className={`flex-1 overflow-auto relative ${isPanning ? 'cursor-grabbing' : ''}`}
+      >
+        <div
+          ref={boardRef}
+          className={`relative ${darkMode ? 'bg-gray-950' : 'bg-gray-50'}`}
+          style={{ 
+            width: BOARD_WIDTH * (zoom / 100), 
+            height: BOARD_HEIGHT * (zoom / 100),
+            backgroundImage: darkMode 
+              ? 'radial-gradient(circle, #374151 1px, transparent 1px)' 
+              : 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
+            backgroundSize: `${24 * (zoom / 100)}px ${24 * (zoom / 100)}px`,
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: 'top left',
+          }}
+          onClick={handleBoardClick}
+          onDoubleClick={handleBoardDoubleClick}
+        >
+          {nodes.map(node => (
+            node.type === NODE_TYPES.IMAGE ? (
+              <DraggableImageNode
+                key={node.id}
+                node={node}
+                onUpdate={updateNode}
+                onDelete={deleteNode}
+                onOpenEditor={(id) => setEditingPageId(id)}
+                pages={pages}
+                onToggleRoutine={handleToggleRoutine}
+                darkMode={darkMode}
+                isSelected={selectedNode === node.id}
+                onSelect={setSelectedNode}
+              />
+            ) : (
+              <DraggableTextNode
+                key={node.id}
+                node={node}
+                onUpdate={updateNode}
+                onDelete={deleteNode}
+                darkMode={darkMode}
+                isSelected={selectedNode === node.id}
+                onSelect={setSelectedNode}
+              />
+            )
+          ))}
+          
+          <div className={`absolute inset-0 pointer-events-none border-2 border-dashed ${
+            darkMode ? 'border-gray-800' : 'border-gray-300'
+          } rounded-lg`} style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT }} />
+        </div>
+
+        {nodes.length === 0 && (
+          <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ top: '64px' }}>
+            <div className={`text-center pointer-events-auto ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              <div className={`w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center ${
+                darkMode ? 'bg-gray-800' : 'bg-gray-200'
+              }`}>
+                <ImagePlus size={40} className={darkMode ? 'text-gray-600' : 'text-gray-400'} />
+              </div>
+              <p className="text-2xl font-bold mb-3 bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                夢を可視化すると、脳はそれを現実として認識し始める
+              </p>
+              <p className="text-sm mb-6 max-w-lg mx-auto px-4">
+                あなたの夢と目標を画像で表現し、毎日眺めることで潜在意識に働きかける
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
+              >
+                最初の画像を追加
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {editingPageId && editingPage && (
+        <PageEditor
+          page={editingPage}
+          nodeImage={editingNode?.src}
+          onUpdate={updatePage}
+          onClose={() => setEditingPageId(null)}
+          darkMode={darkMode}
+        />
+      )}
+
+      <ZoomControl 
+        zoom={zoom} 
+        onZoomChange={handleZoomChange} 
+        onFullscreen={() => setShowAmbientMode(true)}
+        onExportWallpaper={() => setShowWallpaperExport(true)}
+        darkMode={darkMode} 
+      />
+
+      {showAmbientMode && (
+        <AmbientMode
+          nodes={nodes}
+          darkMode={darkMode}
+          onClose={() => setShowAmbientMode(false)}
+        />
+      )}
+
+      {showWallpaperExport && (
+        <WallpaperExportModal
+          nodes={nodes}
+          darkMode={darkMode}
+          onClose={() => setShowWallpaperExport(false)}
+        />
+      )}
+
+      {showHint && (
+        <div className={`fixed bottom-4 left-4 px-4 py-2 rounded-xl text-xs flex items-center gap-3 z-30 ${
+          darkMode ? 'bg-gray-800/90 text-gray-400' : 'bg-white/90 text-gray-500'
+        } backdrop-blur-sm`}>
+          <div>
+            <span className="font-medium">ヒント:</span> ドラッグで移動 • ホイールドラッグでパン • ダブルクリックでテキスト追加
+          </div>
+          <button
+            onClick={() => setShowHint(false)}
+            className={`p-1 rounded-lg transition-colors ${
+              darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+            }`}
+          >
+            <EyeOff size={14} />
+          </button>
+        </div>
+      )}
+
+      {!showHint && (
+        <button
+          onClick={() => setShowHint(true)}
+          className={`fixed bottom-4 left-4 p-2 rounded-xl z-30 ${
+            darkMode ? 'bg-gray-800/90 text-gray-400 hover:bg-gray-700' : 'bg-white/90 text-gray-500 hover:bg-gray-200'
+          } backdrop-blur-sm transition-colors`}
+        >
+          <Eye size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
