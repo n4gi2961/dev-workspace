@@ -26,14 +26,16 @@ import { DraggableTextNode } from '@/components/features/DraggableTextNode';
 import { DraggableImageNode } from '@/components/features/DraggableImageNode';
 import { Block } from '@/components/features/Block';
 import { PageEditor } from '@/components/features/PageEditor';
+import { useNodes } from '@/hooks/useNodes';
+import { usePages } from '@/hooks/usePages';
 
 // Main Vision Board Component
 export default function VisionBoard() {
   const [darkMode, setDarkMode] = useState(true);
-  const [nodes, setNodes] = useState([]);
-  const [pages, setPages] = useState({});
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [editingPageId, setEditingPageId] = useState(null);
+  const { nodes, addNode: addNodeToHook, updateNode: updateNodeInHook, deleteNode: deleteNodeFromHook } = useNodes();
+  const { pages, updatePage: updatePageInHook } = usePages();
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(true);
   const [isPanning, setIsPanning] = useState(false);
   const [zoom, setZoom] = useState(100);
@@ -58,17 +60,16 @@ export default function VisionBoard() {
   }, []);
 
   useEffect(() => {
-    setNodes(prevNodes => prevNodes.map(node => {
+    nodes.forEach(node => {
       if (node.type === NODE_TYPES.TEXT) {
         if (node.color === '#ffffff' && !darkMode) {
-          return { ...node, color: '#000000' };
+          updateNodeInHook({ ...node, color: '#000000' });
         } else if (node.color === '#000000' && darkMode) {
-          return { ...node, color: '#ffffff' };
+          updateNodeInHook({ ...node, color: '#ffffff' });
         }
       }
-      return node;
-    }));
-  }, [darkMode]);
+    });
+  }, [darkMode, nodes, updateNodeInHook]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -121,13 +122,12 @@ export default function VisionBoard() {
     const scrollTop = container?.scrollTop || 0;
     const containerWidth = container?.clientWidth || 800;
     const containerHeight = container?.clientHeight || 600;
-    
+
     // Place new images near the center of the visible area
     const centerX = scrollLeft + containerWidth / 2;
     const centerY = scrollTop + containerHeight / 2;
-    
-    const newNode = {
-      id: generateId(),
+
+    const newNode = addNodeToHook({
       type: NODE_TYPES.IMAGE,
       src,
       x: (centerX - 125 + (Math.random() - 0.5) * 200) / (zoom / 100),
@@ -137,17 +137,12 @@ export default function VisionBoard() {
       shape: IMAGE_SHAPES.FREE,
       hoverFontSize: HOVER_FONT_SIZES.MEDIUM,
       hoverTextColor: HOVER_TEXT_COLORS.WHITE,
-    };
-    setNodes([...nodes, newNode]);
-    setPages({
-      ...pages,
-      [newNode.id]: createInitialPage(),
     });
+    updatePageInHook(newNode.id, createInitialPage());
   };
 
   const addTextNode = (x, y) => {
-    const newNode = {
-      id: generateId(),
+    const newNode = addNodeToHook({
       type: NODE_TYPES.TEXT,
       content: '',
       x: x / (zoom / 100),
@@ -157,9 +152,7 @@ export default function VisionBoard() {
       fontSize: 16,
       color: darkMode ? '#ffffff' : '#000000',
       fontFamily: "'Noto Sans JP', sans-serif",
-      isNew: true,
-    };
-    setNodes([...nodes, newNode]);
+    });
     setSelectedNode(newNode.id);
   };
 
@@ -175,27 +168,22 @@ export default function VisionBoard() {
   };
 
   const updateNode = (updatedNode) => {
-    setNodes(nodes.map(n => n.id === updatedNode.id ? updatedNode : n));
+    updateNodeInHook(updatedNode);
   };
 
   const deleteNode = (nodeId) => {
-    setNodes(nodes.filter(n => n.id !== nodeId));
-    const newPages = { ...pages };
-    delete newPages[nodeId];
-    setPages(newPages);
+    deleteNodeFromHook(nodeId);
     if (selectedNode === nodeId) {
       setSelectedNode(null);
     }
   };
 
-  const updatePage = (pageData) => {
-    setPages({
-      ...pages,
-      [editingPageId]: pageData,
-    });
+  const updatePage = (pageData: any) => {
+    if (!editingPageId) return;
+    updatePageInHook(editingPageId, pageData);
   };
 
-  const handleToggleRoutine = (nodeId, routineId, date) => {
+  const handleToggleRoutine = (nodeId: string, routineId: string, date: string) => {
     const page = pages[nodeId];
     if (!page) return;
 
@@ -208,10 +196,7 @@ export default function VisionBoard() {
       return r;
     });
 
-    setPages({
-      ...pages,
-      [nodeId]: { ...page, routines, updatedAt: Date.now() },
-    });
+    updatePageInHook(nodeId, { ...page, routines, updatedAt: Date.now() });
   };
 
   const handleBoardDoubleClick = (e) => {

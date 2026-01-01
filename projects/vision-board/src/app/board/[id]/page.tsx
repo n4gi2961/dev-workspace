@@ -1,0 +1,150 @@
+'use client'
+
+import { use, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { createClient } from '@/lib/supabase/client'
+import VisionBoard from '@/app/vision-board'
+import { ChevronLeft } from 'lucide-react'
+
+interface BoardPageProps {
+  params: Promise<{
+    id: string
+  }>
+}
+
+interface Board {
+  id: string
+  user_id: string
+  name: string
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
+export default function BoardPage({ params }: BoardPageProps) {
+  // paramsをアンラップ
+  const { id: boardId } = use(params)
+
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const supabase = createClient()
+  const [board, setBoard] = useState<Board | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [boardNotFound, setBoardNotFound] = useState(false)
+
+  useEffect(() => {
+    // ログインチェック
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+
+    // ボードを直接Supabaseから取得
+    const loadBoard = async () => {
+      if (!user) return
+
+      setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('boards')
+          .select('*')
+          .eq('id', boardId)
+          .eq('user_id', user.id)
+          .single()
+
+        if (error || !data) {
+          console.error('Board not found:', error)
+          setBoardNotFound(true)
+        } else {
+          setBoard(data)
+          setBoardNotFound(false)
+        }
+      } catch (err) {
+        console.error('Failed to load board:', err)
+        setBoardNotFound(true)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (!authLoading && user) {
+      loadBoard()
+    }
+  }, [user, authLoading, boardId, router, supabase])
+
+  // ローディング中 - スケルトン表示
+  if (authLoading || loading) {
+    return (
+      <div className="h-screen flex flex-col bg-gray-950">
+        {/* ヘッダースケルトン */}
+        <div className="flex-shrink-0 bg-gray-900/90 border-b border-gray-800 backdrop-blur-xl">
+          <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div className="h-6 w-32 bg-gray-800 rounded animate-pulse"></div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-32 bg-gray-800 rounded-xl animate-pulse"></div>
+              <div className="h-10 w-32 bg-gray-800 rounded-xl animate-pulse"></div>
+              <div className="h-10 w-10 bg-gray-800 rounded-xl animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* ボードスケルトン */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-64 h-64 mx-auto mb-6 rounded-3xl bg-gray-800 animate-pulse"></div>
+            <div className="h-8 w-96 bg-gray-800 rounded mx-auto mb-3 animate-pulse"></div>
+            <div className="h-4 w-64 bg-gray-800 rounded mx-auto animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ログインしていない
+  if (!user) {
+    return null
+  }
+
+  // ボードが見つからない
+  if (boardNotFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            ボードが見つかりません
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            指定されたボードは存在しないか、アクセス権限がありません
+          </p>
+          <button
+            onClick={() => router.push('/boards')}
+            className="flex items-center gap-2 mx-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            ボード一覧に戻る
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Vision Board表示
+  return (
+    <div className="relative h-screen">
+      {/* 戻るボタン */}
+      <div className="absolute top-4 left-4 z-50">
+        <button
+          onClick={() => router.push('/boards')}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg backdrop-blur-sm transition-all"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          ボード一覧
+        </button>
+      </div>
+
+      {/* Vision Board本体 */}
+      <VisionBoard />
+    </div>
+  )
+}
