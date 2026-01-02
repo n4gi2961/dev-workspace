@@ -32,7 +32,7 @@ export const Header: React.FC = () => {
     <StyledAppBar position="fixed" elevation={0}>
       <Toolbar>
         <LogoContainer sx={{ flexGrow: 1 }}>
-          <LogoIcon>🧠</LogoIcon>
+          <LogoIcon>⏳</LogoIcon>
           <Typography variant="h6" component="h1" sx={{ color: 'white', fontWeight: 600 }}>
             FocusFlow
           </Typography>

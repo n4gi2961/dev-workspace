@@ -182,7 +182,7 @@ export const SettingsPage: React.FC = () => {
             テーマカラー
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            お好みの配色を選択してください
+            お好みの配色を選択
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
             {/* 寒色系テーマ（左側） */}

@@ -144,7 +144,7 @@ export default function BoardPage({ params }: BoardPageProps) {
       </div>
 
       {/* Vision Board本体 */}
-      <VisionBoard />
+      <VisionBoard boardId={boardId} userId={user.id} />
     </div>
   )
 }

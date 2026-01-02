@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from './useAuth'
 
@@ -16,11 +16,15 @@ export interface Board {
 
 export function useVisionBoard() {
   const { user } = useAuth()
-  const supabase = createClient()
+  // ✅ useMemo でキャッシュ - 毎レンダリングで新インスタンスを作らない
+  const supabase = useMemo(() => createClient(), [])
   const [boards, setBoards] = useState<Board[]>([])
   const [currentBoard, setCurrentBoard] = useState<Board | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+
+  // 初回選択済みフラグ（循環依存防止用）
+  const initialBoardSelectedRef = useRef(false)
 
   // ボード一覧読み込み
   const loadBoards = useCallback(async () => {
@@ -40,8 +44,9 @@ export function useVisionBoard() {
       if (error) throw error
       setBoards(data || [])
 
-      // 最初のボードを自動選択（currentBoardが未設定の場合）
-      if (data && data.length > 0 && !currentBoard) {
+      // 最初のボードを自動選択（初回のみ）
+      if (data && data.length > 0 && !initialBoardSelectedRef.current) {
+        initialBoardSelectedRef.current = true
         setCurrentBoard(data[0])
       }
     } catch (err) {
@@ -50,7 +55,8 @@ export function useVisionBoard() {
     } finally {
       setLoading(false)
     }
-  }, [user, currentBoard, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])  // supabaseはuseMemoでキャッシュ済み、currentBoardは循環依存防止のため除外
 
   // ボード作成
   const createBoard = useCallback(async (name: string, description?: string) => {
@@ -73,7 +79,8 @@ export function useVisionBoard() {
       setError(err as Error)
       throw err
     }
-  }, [user, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])  // supabaseはuseMemoでキャッシュ済み
 
   // ボード更新
   const updateBoard = useCallback(async (boardId: string, updates: Partial<Board>) => {
@@ -88,16 +95,16 @@ export function useVisionBoard() {
       if (error) throw error
 
       setBoards(prev => prev.map(b => b.id === boardId ? data : b))
-      if (currentBoard?.id === boardId) {
-        setCurrentBoard(data)
-      }
+      // currentBoardの更新はsetCurrentBoardの関数形式で安全に行う
+      setCurrentBoard(prev => prev?.id === boardId ? data : prev)
       return data
     } catch (err) {
       console.error('Failed to update board:', err)
       setError(err as Error)
       throw err
     }
-  }, [currentBoard, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // supabaseはuseMemoでキャッシュ済み
 
   // ボード削除
   const deleteBoard = useCallback(async (boardId: string) => {
@@ -110,15 +117,15 @@ export function useVisionBoard() {
       if (error) throw error
 
       setBoards(prev => prev.filter(b => b.id !== boardId))
-      if (currentBoard?.id === boardId) {
-        setCurrentBoard(null)
-      }
+      // currentBoardの更新はsetCurrentBoardの関数形式で安全に行う
+      setCurrentBoard(prev => prev?.id === boardId ? null : prev)
     } catch (err) {
       console.error('Failed to delete board:', err)
       setError(err as Error)
       throw err
     }
-  }, [currentBoard, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // supabaseはuseMemoでキャッシュ済み
 
   // 初期ロード
   useEffect(() => {

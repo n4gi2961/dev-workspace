@@ -2,6 +2,7 @@ import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { AppProvider, useAppContext } from './contexts/AppContext';
+import { TimerProvider } from './contexts/TimerContext';
 import { Layout } from './components/layout/Layout';
 import { AppRouter } from './components/AppRouter';
 import { createAppTheme } from './styles/theme';
@@ -28,7 +29,9 @@ const ThemedApp: React.FC = () => {
 function App() {
   return (
     <AppProvider>
-      <ThemedApp />
+      <TimerProvider>
+        <ThemedApp />
+      </TimerProvider>
     </AppProvider>
   );
 }

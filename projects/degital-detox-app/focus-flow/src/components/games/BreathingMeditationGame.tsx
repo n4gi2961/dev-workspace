@@ -11,11 +11,15 @@ import {
   InputLabel,
   LinearProgress,
   IconButton,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
   PlayArrow as PlayIcon,
   ArrowBack as BackIcon,
+  VolumeUp as VolumeUpIcon,
+  VolumeOff as VolumeOffIcon,
 } from '@mui/icons-material';
 import { 
   BREATHING_PATTERNS, 
@@ -29,6 +33,7 @@ import { SimpleBreathingCompletion } from './SimpleBreathingCompletion';
 import { useBreathingSession } from '../../hooks/useBreathingSession';
 import { useBreathingData } from '../../hooks/useBreathingData';
 import { useAppContext } from '../../contexts/AppContext';
+import { useScheduledAudio } from '../../hooks/useScheduledAudio';
 import { formatDuration, formatTime } from '../../utils/breathingCalculations';
 
 const GameContainer = styled(Box)(({ theme }) => ({
@@ -73,6 +78,9 @@ export const BreathingMeditationGame: React.FC<BreathingMeditationGameProps> = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sessionData, setSessionData] = useState<BreathingSessionData | null>(null);
   
+  // 音声設定状態
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  
   // データ管理フック
   const { saveSession } = useBreathingData();
   const { dispatch } = useAppContext();
@@ -107,6 +115,15 @@ export const BreathingMeditationGame: React.FC<BreathingMeditationGameProps> = (
     onComplete: handleSessionComplete,
   });
 
+  // スケジュール式音声管理
+  useScheduledAudio({
+    pattern: selectedPatternData,
+    sessionDuration,
+    elapsedTime,
+    isActive: sessionState === SESSION_STATES.ACTIVE,
+    audioEnabled
+  });
+
 
   const handlePatternChange = (event: any) => {
     if (sessionState === SESSION_STATES.IDLE) {
@@ -118,6 +135,10 @@ export const BreathingMeditationGame: React.FC<BreathingMeditationGameProps> = (
     if (sessionState === SESSION_STATES.IDLE) {
       setSessionDuration(event.target.value);
     }
+  };
+
+  const handleAudioToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setAudioEnabled(event.target.checked);
   };
 
   const handleStartSession = () => {
@@ -225,6 +246,25 @@ export const BreathingMeditationGame: React.FC<BreathingMeditationGameProps> = (
                   </MenuItem>
                 </Select>
               </FormControl>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={audioEnabled}
+                    onChange={handleAudioToggle}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {audioEnabled ? <VolumeUpIcon /> : <VolumeOffIcon />}
+                    <Typography variant="body1">
+                      音声ガイド
+                    </Typography>
+                  </Box>
+                }
+                sx={{ mb: 2 }}
+              />
 
               <Button
                 fullWidth

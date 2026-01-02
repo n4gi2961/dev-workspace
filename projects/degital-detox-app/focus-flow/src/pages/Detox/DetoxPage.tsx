@@ -8,6 +8,7 @@ import { getRandomTip } from '../../utils';
 import { DETOX_TIPS } from '../../constants';
 import { DetoxEndDialog } from '../../components/dialogs';
 import { DetoxResultPage } from './DetoxResultPage';
+import { TimerList } from '../../components/timers';
 
 const DetoxContainer = styled(Box)({
   textAlign: 'center',
@@ -19,14 +20,14 @@ const DetoxContainer = styled(Box)({
 });
 
 const DetoxButton = styled(Button)<{ isActive: boolean }>(({ theme, isActive }) => ({
-  width: 200,
-  height: 200,
+  width: 150,
+  height: 150,
   borderRadius: '50%',
   background: isActive 
     ? 'linear-gradient(135deg, #E76F51, #F4A261)' 
     : theme.custom.detoxGradient,
   color: 'white',
-  fontSize: '1.125rem',
+  fontSize: '1rem',
   fontWeight: 'bold',
   boxShadow: theme.custom.shadowMedium,
   transition: 'all 0.3s ease',
@@ -143,7 +144,7 @@ export const DetoxPage: React.FC = () => {
         variant="h4"
         component="h1"
         sx={{
-          mb: 3,
+          mb: 0.75,
           textAlign: 'center',
           color: 'text.primary',
           fontWeight: 600,
@@ -158,7 +159,7 @@ export const DetoxPage: React.FC = () => {
           onClick={handleDetoxToggle}
           aria-label={isActive ? 'デジタルデトックスを停止' : 'デジタルデトックスを開始'}
         >
-          <DetoxIcon sx={{ fontSize: 60 }} />
+          <DetoxIcon sx={{ fontSize: 45 }} />
           <span>{isActive ? '停止' : '開始'}</span>
         </DetoxButton>
 
@@ -179,6 +180,11 @@ export const DetoxPage: React.FC = () => {
           </CardContent>
         </TipsCard>
       </DetoxContainer>
+
+      {/* タイマー機能セクション */}
+      <Box sx={{ mt: 0.75, px: 2 }}>
+        <TimerList />
+      </Box>
 
       <DetoxEndDialog
         open={showEndDialog}

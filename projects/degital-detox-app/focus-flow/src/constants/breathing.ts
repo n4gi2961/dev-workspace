@@ -19,7 +19,7 @@ export const BREATHING_PATTERNS: Record<string, BreathingPattern> = {
       { type: 'exhale', duration: 4000, instruction: '吐く' },
       { type: 'hold', duration: 4000, instruction: '止める' }
     ],
-    description: 'ストレス軽減と集中力向上'
+    description: 'アメリカ海軍でも採用 ストレス軽減と集中力向上'
   },
   relaxing: {
     name: '4-7-8呼吸法',
@@ -59,7 +59,7 @@ export const SESSION_DURATIONS = {
 export const PHASE_COLORS = {
   inhale: '#2A9D8F',   // ターコイズ（吸う）
   hold: '#F4A261',     // オレンジ（止める）
-  exhale: '#0099FF'    // 深海ブルー（吐く）
+  exhale: '#0099FF'    // スカイブルー（吐く）
 } as const;
 
 export interface BreathingSessionData {

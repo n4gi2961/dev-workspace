@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(for dir in archive claude-sessions experiments learning projects)",
@@ -22,7 +23,11 @@
       "Bash(gh repo create:*)",
       "Bash(git push:*)",
       "Bash(git tag:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

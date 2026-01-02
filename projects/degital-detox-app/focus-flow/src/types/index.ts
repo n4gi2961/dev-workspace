@@ -61,3 +61,6 @@ export type AppAction =
   | { type: 'SET_ACTIVE_TAB'; payload: NavigationTab }
   | { type: 'ADD_GAME_SCORE'; payload: GameScore }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<UserSettings> };
+
+// タイマー関連のタイプをエクスポート
+export * from './timer';
