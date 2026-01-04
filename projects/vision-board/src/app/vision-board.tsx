@@ -8,7 +8,7 @@ import { HOVER_FONT_CONFIG, ROUTINE_COLORS, FONT_OPTIONS, SIZE_OPTIONS, COLOR_OP
 import { CATEGORIES, DECADES, SAMPLE_IMAGES } from '@/constants/ui';
 import { generateId, getRandomColor, getTodayString, getWeekDates, getMonthDates, getDayLabel } from '@/lib/utils';
 import { getEncouragementMessage } from '@/lib/messages';
-import { createInitialBlocks, createInitialPage } from '@/lib/initialData';
+import { createInitialBlocks } from '@/lib/initialData';
 import { LiquidFillProgress } from '@/components/ui/LiquidFillProgress';
 import { DraggableItem } from '@/components/ui/DraggableItem';
 import { ColorPicker } from '@/components/ui/ColorPicker';
@@ -26,12 +26,39 @@ import { DraggableTextNode } from '@/components/features/DraggableTextNode';
 import { DraggableImageNode } from '@/components/features/DraggableImageNode';
 import { Block } from '@/components/features/Block';
 import { PageEditor } from '@/components/features/PageEditor';
+import { useNodes, Node } from '@/hooks/useNodes';
+import { usePages } from '@/hooks/usePages';
+import { createInitialPage as createEmptyPage } from '@/lib/pageMapper';
+
+interface VisionBoardProps {
+  boardId?: string;
+  userId?: string;
+}
 
 // Main Vision Board Component
-export default function VisionBoard() {
+export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
   const [darkMode, setDarkMode] = useState(true);
-  const [nodes, setNodes] = useState([]);
-  const [pages, setPages] = useState({});
+
+  // ✅ useNodesフックを使用
+  const {
+    nodes,
+    addNode: addNodeToHook,
+    updateNode: updateNodeInHook,
+    deleteNode: deleteNodeFromHook,
+    loading: nodesLoading
+  } = useNodes(boardId, userId);
+
+  // ✅ usePagesフックを使用
+  const {
+    pages,
+    getPage,
+    savePage,
+    updatePageLocal,
+    deletePage: deletePageFromHook,
+    saveMilestones,
+    saveRoutines,
+    loading: pagesLoading
+  } = usePages(userId);
   const [selectedNode, setSelectedNode] = useState(null);
   const [editingPageId, setEditingPageId] = useState(null);
   const [showHint, setShowHint] = useState(true);
@@ -57,18 +84,9 @@ export default function VisionBoard() {
     }
   }, []);
 
-  useEffect(() => {
-    setNodes(prevNodes => prevNodes.map(node => {
-      if (node.type === NODE_TYPES.TEXT) {
-        if (node.color === '#ffffff' && !darkMode) {
-          return { ...node, color: '#000000' };
-        } else if (node.color === '#000000' && darkMode) {
-          return { ...node, color: '#ffffff' };
-        }
-      }
-      return node;
-    }));
-  }, [darkMode]);
+  // darkMode変更時のテキスト色自動変更は無効化
+  // （Supabase永続化により、毎回DBへの更新が発生するため）
+  // テキスト色はユーザーが手動で設定してください
 
   useEffect(() => {
     const container = containerRef.current;
@@ -115,20 +133,20 @@ export default function VisionBoard() {
     };
   }, [isPanning]);
 
-  const addImageNode = (src) => {
+  // ✅ 非同期でSupabaseに保存
+  const addImageNode = async (src: string) => {
     const container = containerRef.current;
     const scrollLeft = container?.scrollLeft || 0;
     const scrollTop = container?.scrollTop || 0;
     const containerWidth = container?.clientWidth || 800;
     const containerHeight = container?.clientHeight || 600;
-    
+
     // Place new images near the center of the visible area
     const centerX = scrollLeft + containerWidth / 2;
     const centerY = scrollTop + containerHeight / 2;
-    
+
     const newNode = {
-      id: generateId(),
-      type: NODE_TYPES.IMAGE,
+      type: NODE_TYPES.IMAGE as 'image',
       src,
       x: (centerX - 125 + (Math.random() - 0.5) * 200) / (zoom / 100),
       y: (centerY - 90 + (Math.random() - 0.5) * 200) / (zoom / 100),
@@ -138,17 +156,20 @@ export default function VisionBoard() {
       hoverFontSize: HOVER_FONT_SIZES.MEDIUM,
       hoverTextColor: HOVER_TEXT_COLORS.WHITE,
     };
-    setNodes([...nodes, newNode]);
-    setPages({
-      ...pages,
-      [newNode.id]: createInitialPage(),
-    });
+
+    // ✅ Supabaseに保存（IDはSupabaseが生成）
+    const savedNode = await addNodeToHook(newNode);
+    if (savedNode) {
+      // ✅ ページもSupabaseに保存
+      const initialPage = createEmptyPage();
+      updatePageLocal(savedNode.id, initialPage);
+      savePage(savedNode.id, initialPage);
+    }
   };
 
-  const addTextNode = (x, y) => {
+  const addTextNode = async (x: number, y: number) => {
     const newNode = {
-      id: generateId(),
-      type: NODE_TYPES.TEXT,
+      type: NODE_TYPES.TEXT as 'text',
       content: '',
       x: x / (zoom / 100),
       y: y / (zoom / 100),
@@ -159,8 +180,11 @@ export default function VisionBoard() {
       fontFamily: "'Noto Sans JP', sans-serif",
       isNew: true,
     };
-    setNodes([...nodes, newNode]);
-    setSelectedNode(newNode.id);
+    // ✅ Supabaseに保存
+    const savedNode = await addNodeToHook(newNode);
+    if (savedNode) {
+      setSelectedNode(savedNode.id);
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -174,28 +198,30 @@ export default function VisionBoard() {
     }
   };
 
-  const updateNode = (updatedNode) => {
-    setNodes(nodes.map(n => n.id === updatedNode.id ? updatedNode : n));
+  // ✅ Supabaseに保存（楽観的更新）
+  const updateNode = (updatedNode: Node) => {
+    updateNodeInHook(updatedNode);
   };
 
-  const deleteNode = (nodeId) => {
-    setNodes(nodes.filter(n => n.id !== nodeId));
-    const newPages = { ...pages };
-    delete newPages[nodeId];
-    setPages(newPages);
+  // ✅ Supabaseから削除
+  const deleteNode = (nodeId: string) => {
+    deleteNodeFromHook(nodeId);
+    // ✅ ページもSupabaseから削除
+    deletePageFromHook(nodeId);
     if (selectedNode === nodeId) {
       setSelectedNode(null);
     }
   };
 
   const updatePage = (pageData) => {
-    setPages({
-      ...pages,
-      [editingPageId]: pageData,
-    });
+    if (!editingPageId) return;
+    // ✅ ローカル更新（楽観的更新）
+    updatePageLocal(editingPageId, pageData);
+    // ✅ Supabaseに保存
+    savePage(editingPageId, pageData);
   };
 
-  const handleToggleRoutine = (nodeId, routineId, date) => {
+  const handleToggleRoutine = (nodeId: string, routineId: string, date: string) => {
     const page = pages[nodeId];
     if (!page) return;
 
@@ -208,10 +234,18 @@ export default function VisionBoard() {
       return r;
     });
 
-    setPages({
-      ...pages,
-      [nodeId]: { ...page, routines, updatedAt: Date.now() },
-    });
+    // ✅ ローカル更新（楽観的更新）
+    updatePageLocal(nodeId, { ...page, routines, updatedAt: Date.now() });
+    // ✅ Supabaseに保存
+    saveRoutines(nodeId, routines);
+  };
+
+  // ✅ ページエディタを開く（データをロード）
+  const handleOpenEditor = async (nodeId: string) => {
+    // まずページデータを取得（キャッシュかDBから）
+    await getPage(nodeId);
+    // エディタを開く
+    setEditingPageId(nodeId);
   };
 
   const handleBoardDoubleClick = (e) => {
@@ -366,7 +400,7 @@ export default function VisionBoard() {
                 node={node}
                 onUpdate={updateNode}
                 onDelete={deleteNode}
-                onOpenEditor={(id) => setEditingPageId(id)}
+                onOpenEditor={handleOpenEditor}
                 pages={pages}
                 onToggleRoutine={handleToggleRoutine}
                 darkMode={darkMode}
@@ -391,7 +425,14 @@ export default function VisionBoard() {
           } rounded-lg`} style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT }} />
         </div>
 
-        {nodes.length === 0 && (
+        {nodesLoading ? (
+          <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ top: '64px' }}>
+            <div className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
+              <p className="text-lg font-medium">Now Loading...</p>
+            </div>
+          </div>
+        ) : nodes.length === 0 && (
           <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ top: '64px' }}>
             <div className={`text-center pointer-events-auto ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
               <div className={`w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center ${

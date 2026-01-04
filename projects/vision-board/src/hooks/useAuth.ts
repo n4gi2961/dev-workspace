@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  // ✅ 必須: useMemoでキャッシュ
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     // 初期セッション取得
@@ -25,7 +26,8 @@ export function useAuth() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // ✅ 空配列 - supabaseはuseMemoでキャッシュ済み
 
   return { user, loading }
 }

@@ -59,3 +59,6 @@ React Hooksの`useCallback`で依存配列が不完全だったため、パタ�
 
 これらのルールに従うことで、React Hooksの依存配列に関する問題を事前に防ぐことができます。
 - 
+
+## 参照ドキュメント
+- /docs/supabase-reference.md - Supabase実装の参考

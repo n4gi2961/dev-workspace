@@ -25,12 +25,18 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
   const [resizeDirection, setResizeDirection] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [showPlaceHint, setShowPlaceHint] = useState(false);
+  // ✅ ローカル位置/サイズ状態（ドラッグ中のみ使用）
+  const [localPos, setLocalPos] = useState({ x: node.x, y: node.y });
+  const [localSize, setLocalSize] = useState({ width: node.width, height: node.height });
   const nodeRef = useRef<HTMLDivElement>(null);
   const startPos = useRef({ x: 0, y: 0 });
   const startSize = useRef({ width: 0, height: 0 });
   const startNodePos = useRef({ x: 0, y: 0 });
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const clickCount = useRef(0);
+  // ✅ nodeをrefで保持（依存配列から除外するため）
+  const nodeRef2 = useRef(node);
+  nodeRef2.current = node;
 
   const page = pages[node.id] || createInitialPage();
   const shape = node.shape || IMAGE_SHAPES.FREE;
@@ -87,6 +93,9 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
       clickTimer.current = setTimeout(() => {
         if (clickCount.current === 1) {
           onSelect(node.id);
+          // ✅ ドラッグ開始時にローカル状態を初期化
+          setLocalPos({ x: node.x, y: node.y });
+          setLocalSize({ width: node.width, height: node.height });
           setIsDragging(true);
           setShowPlaceHint(true);
           startPos.current = { x: e.clientX - node.x, y: e.clientY - node.y };
@@ -103,6 +112,9 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
   const handleResizeStart = (e: React.MouseEvent, direction: string) => {
     e.preventDefault();
     e.stopPropagation();
+    // ✅ リサイズ開始時にローカル状態を初期化
+    setLocalPos({ x: node.x, y: node.y });
+    setLocalSize({ width: node.width, height: node.height });
     setIsResizing(true);
     setResizeDirection(direction);
     startPos.current = { x: e.clientX, y: e.clientY };
@@ -110,16 +122,27 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
     startNodePos.current = { x: node.x, y: node.y };
   };
 
+  // ✅ nodeが外部から変更されたらローカル状態を同期
+  useEffect(() => {
+    if (!isDragging && !isResizing) {
+      setLocalPos({ x: node.x, y: node.y });
+      setLocalSize({ width: node.width, height: node.height });
+    }
+  }, [node.x, node.y, node.width, node.height, isDragging, isResizing]);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      const currentNode = nodeRef2.current;
+
       if (isDragging) {
         let newX = e.clientX - startPos.current.x;
         let newY = e.clientY - startPos.current.y;
 
-        newX = Math.max(0, Math.min(newX, BOARD_WIDTH - node.width));
-        newY = Math.max(0, Math.min(newY, BOARD_HEIGHT - node.height));
+        newX = Math.max(0, Math.min(newX, BOARD_WIDTH - localSize.width));
+        newY = Math.max(0, Math.min(newY, BOARD_HEIGHT - localSize.height));
 
-        onUpdate({ ...node, x: newX, y: newY });
+        // ✅ ローカル状態のみ更新（DBには保存しない）
+        setLocalPos({ x: newX, y: newY });
       }
       if (isResizing && resizeDirection) {
         const deltaX = e.clientX - startPos.current.x;
@@ -183,11 +206,26 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
         newX = Math.max(0, newX);
         newY = Math.max(0, newY);
 
-        onUpdate({ ...node, x: newX, y: newY, width: newWidth, height: newHeight });
+        // ✅ ローカル状態のみ更新（DBには保存しない）
+        setLocalPos({ x: newX, y: newY });
+        setLocalSize({ width: newWidth, height: newHeight });
       }
     };
 
     const handleMouseUp = () => {
+      const currentNode = nodeRef2.current;
+
+      // ✅ ドラッグ/リサイズ終了時のみDBに保存
+      if (isDragging || isResizing) {
+        onUpdate({
+          ...currentNode,
+          x: localPos.x,
+          y: localPos.y,
+          width: localSize.width,
+          height: localSize.height,
+        });
+      }
+
       setIsDragging(false);
       setIsResizing(false);
       setResizeDirection(null);
@@ -203,7 +241,8 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, isResizing, resizeDirection, node, shape, onUpdate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDragging, isResizing, resizeDirection, shape, localPos, localSize]);
 
   const resizeHandles = [
     { position: 'n', cursor: 'ns-resize', style: { top: -4, left: '50%', transform: 'translateX(-50%)', width: 40, height: 8 } },
@@ -216,6 +255,12 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
     { position: 'sw', cursor: 'nesw-resize', style: { bottom: -4, left: -4, width: 12, height: 12 } },
   ];
 
+  // ✅ 表示にはローカル状態を使用（ドラッグ中のスムーズな動き）
+  const displayX = isDragging || isResizing ? localPos.x : node.x;
+  const displayY = isDragging || isResizing ? localPos.y : node.y;
+  const displayWidth = isDragging || isResizing ? localSize.width : node.width;
+  const displayHeight = isDragging || isResizing ? localSize.height : node.height;
+
   return (
     <div
       ref={nodeRef}
@@ -223,10 +268,10 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
         isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
       } ${isDragging ? 'opacity-90 cursor-grabbing' : 'cursor-grab'}`}
       style={{
-        left: node.x,
-        top: node.y,
-        width: node.width,
-        height: node.height,
+        left: displayX,
+        top: displayY,
+        width: displayWidth,
+        height: displayHeight,
         zIndex: isSelected ? 10 : 1,
       }}
       onMouseDown={handleMouseDown}
