@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { User } from '@supabase/supabase-js'
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 export function useAuth() {
@@ -11,16 +11,17 @@ export function useAuth() {
   const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
-    // 初期セッション取得
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
+    // ✅ getSession()はローカルストレージを先にチェック（高速）
+    // getUser()は毎回サーバーに問い合わせる（遅い）
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
       setLoading(false)
     })
 
     // 認証状態の変更を監視
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
