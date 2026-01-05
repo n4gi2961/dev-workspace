@@ -28,6 +28,7 @@ import { Block } from '@/components/features/Block';
 import { PageEditor } from '@/components/features/PageEditor';
 import { useNodes, Node } from '@/hooks/useNodes';
 import { usePages } from '@/hooks/usePages';
+import { uploadImage } from '@/lib/supabase/storage';
 import { createInitialPage as createEmptyPage } from '@/lib/pageMapper';
 
 interface VisionBoardProps {
@@ -187,14 +188,17 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        addImageNode(event.target.result);
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId || !boardId) return;
+
+    try {
+      // ✅ Storageにアップロードして公開URLを取得
+      const imageUrl = await uploadImage(file, userId, boardId);
+      addImageNode(imageUrl);
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('画像のアップロードに失敗しました');
     }
   };
 
