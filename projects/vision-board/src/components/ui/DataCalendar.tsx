@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getTodayString, getMonthDates } from '@/lib/utils';
 
 interface DataCalendarProps {
@@ -7,6 +7,14 @@ interface DataCalendarProps {
   milestones: any[];
   darkMode: boolean;
 }
+
+// ローカル時刻でYYYY-MM-DD形式を生成（マイルストーン日付用）
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -18,11 +26,11 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
 
   const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
-  // Get milestone completion dates
-  const milestoneDates = new Set(
+  // Get milestone completion dates with their titles
+  const milestoneByDate = new Map<string, string>(
     milestones
       .filter(m => m.completedAt)
-      .map(m => new Date(m.completedAt).toISOString().split('T')[0])
+      .map(m => [formatLocalDate(new Date(m.completedAt)), m.title])
   );
 
   const goToPrevMonth = () => {
@@ -90,7 +98,7 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
       <div className="grid grid-cols-7 gap-1">
         {monthDates.map(({ date, isCurrentMonth }, idx) => {
           const isToday = date === todayString;
-          const hasMilestone = milestoneDates.has(date);
+          const hasMilestone = milestoneByDate.has(date);
           const isFuture = date > todayString;
 
           // Get routine completions for this date
@@ -99,10 +107,16 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
             completed: r.history?.[date] || false,
           })).filter(r => r.completed);
 
+          // Split dots into rows of 5
+          const dotRows: typeof routineCompletions[] = [];
+          for (let i = 0; i < routineCompletions.length; i += 5) {
+            dotRows.push(routineCompletions.slice(i, i + 5));
+          }
+
           return (
             <div
               key={idx}
-              className={`relative aspect-square p-1 rounded-lg transition-colors ${
+              className={`relative h-12 p-1 rounded-lg transition-colors ${
                 !isCurrentMonth
                   ? 'opacity-30'
                   : isToday
@@ -112,38 +126,41 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
                       : 'hover:bg-gray-200'
               }`}
             >
-              <div className={`text-xs text-center ${
-                isToday
-                  ? 'text-violet-400 font-bold'
-                  : darkMode
-                    ? 'text-gray-300'
-                    : 'text-gray-700'
-              }`}>
-                {parseInt(date.slice(8))}
+              {/* Date and routine dots in same row */}
+              <div className="flex items-start gap-1.5 py-0.5 px-2.5">
+                <span className={`text-xs font-medium flex-shrink-0 w-3 text-right ${
+                  isToday
+                    ? 'text-violet-400 font-bold'
+                    : darkMode
+                      ? 'text-gray-300'
+                      : 'text-gray-700'
+                }`}>
+                  {parseInt(date.slice(8))}
+                </span>
+                {/* Routine dots: 5 per row */}
+                {dotRows.length > 0 && !isFuture && (
+                  <div className="flex flex-col gap-0.75 mt-1.5">
+                    {dotRows.map((row, rowIdx) => (
+                      <div key={rowIdx} className="flex gap-0.75">
+                        {row.map((r, i) => (
+                          <div
+                            key={i}
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: r.color }}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Routine dots */}
-              {routineCompletions.length > 0 && !isFuture && (
-                <div className="flex flex-wrap justify-center gap-0.5 mt-0.5">
-                  {routineCompletions.slice(0, 4).map((r, i) => (
-                    <div
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: r.color }}
-                    />
-                  ))}
-                  {routineCompletions.length > 4 && (
-                    <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                      +{routineCompletions.length - 4}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Milestone star */}
+              {/* Milestone star overlay */}
               {hasMilestone && (
-                <div className="absolute top-0 right-0">
-                  <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                <div className="absolute inset-0 flex px-2.75 py-4.5 pointer-events-none">
+                  <span className="text-xl text-yellow-400 drop-shadow-[0_0_4px_rgba(250,204,21,0.8)]">
+                    ★
+                  </span>
                 </div>
               )}
             </div>
@@ -154,7 +171,7 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
       {/* Legend */}
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          凡例
+          進捗
         </div>
         <div className="flex flex-wrap gap-3">
           {routines.map(r => (
@@ -169,9 +186,9 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
             </div>
           ))}
           <div className="flex items-center gap-1.5">
-            <Star size={12} className="text-yellow-400 fill-yellow-400" />
+            <span className="text-sm text-yellow-400">★</span>
             <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              マイルストーン達成
+              マイルストーン達成日
             </span>
           </div>
         </div>

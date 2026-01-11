@@ -10,15 +10,26 @@ interface RoutineWeeklyTableProps {
   onAddRoutine: (title: string) => void;
   onDeleteRoutine: (routineId: string) => void;
   onUpdateRoutineColor: (routineId: string, color: string) => void;
+  onUpdateRoutineTitle: (routineId: string, newTitle: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   darkMode: boolean;
 }
 
-export const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAddRoutine, onDeleteRoutine, onUpdateRoutineColor, onReorder, darkMode }: RoutineWeeklyTableProps) => {
+export const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAddRoutine, onDeleteRoutine, onUpdateRoutineColor, onUpdateRoutineTitle, onReorder, darkMode }: RoutineWeeklyTableProps) => {
   const [newRoutineTitle, setNewRoutineTitle] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
+  const [editingRoutineTitle, setEditingRoutineTitle] = useState('');
   const weekDates = getWeekDates(weekOffset);
   const todayString = getTodayString();
+
+  const handleUpdateTitle = (id: string) => {
+    if (editingRoutineTitle.trim()) {
+      onUpdateRoutineTitle(id, editingRoutineTitle.trim());
+    }
+    setEditingRoutineId(null);
+    setEditingRoutineTitle('');
+  };
 
   const handleAddRoutine = () => {
     if (newRoutineTitle.trim()) {
@@ -94,7 +105,37 @@ export const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAd
                     onChange={(color) => onUpdateRoutineColor(routine.id, color)}
                     darkMode={darkMode}
                   />
-                  {routine.title}
+                  {editingRoutineId === routine.id ? (
+                    <input
+                      type="text"
+                      value={editingRoutineTitle}
+                      onChange={(e) => setEditingRoutineTitle(e.target.value)}
+                      onBlur={() => handleUpdateTitle(routine.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleUpdateTitle(routine.id);
+                        if (e.key === 'Escape') {
+                          setEditingRoutineId(null);
+                          setEditingRoutineTitle('');
+                        }
+                      }}
+                      className={`flex-1 px-2 py-0.5 rounded border outline-none text-sm ${
+                        darkMode
+                          ? 'bg-gray-700 text-gray-200 border-violet-500'
+                          : 'bg-white text-gray-700 border-violet-500'
+                      }`}
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      className="cursor-pointer"
+                      onDoubleClick={() => {
+                        setEditingRoutineId(routine.id);
+                        setEditingRoutineTitle(routine.title);
+                      }}
+                    >
+                      {routine.title}
+                    </span>
+                  )}
                 </div>
               </td>
               {weekDates.map((date, idx) => {

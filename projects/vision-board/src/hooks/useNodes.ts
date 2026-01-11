@@ -50,6 +50,24 @@ const saveToCache = (boardId: string, nodes: Node[]) => {
   }
 }
 
+// ✅ 全ボードのキャッシュをクリア（移行後に使用）
+export const clearAllNodesCache = () => {
+  if (typeof window === 'undefined') return
+  try {
+    const keysToRemove: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('vision-board-nodes-')) {
+        keysToRemove.push(key)
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+    console.log(`Cleared ${keysToRemove.length} cache entries`)
+  } catch (e) {
+    console.warn('Failed to clear cache:', e)
+  }
+}
+
 // ✅ boardIdとuserIdを引数で受け取る（useAuthは使わない）
 export function useNodes(boardId?: string, userId?: string) {
   // ✅ 必須: useMemoでキャッシュ

@@ -68,14 +68,14 @@ export function usePages(userId?: string) {
         .order('sort_order', { ascending: true })
 
       // 変換して返す
-      const milestones = (milestonesData || []).map(m => ({
+      const milestones = (milestonesData || []).map((m: { id: string; title: string; completed: boolean; completed_at?: string }) => ({
         id: m.id,
         title: m.title,
         completed: m.completed,
         completedAt: m.completed_at || undefined,
       }))
 
-      const routines = (routinesData || []).map(r => ({
+      const routines = (routinesData || []).map((r: { id: string; title: string; color: string; history?: Record<string, boolean> }) => ({
         id: r.id,
         title: r.title,
         color: r.color,
@@ -245,7 +245,12 @@ export function usePages(userId?: string) {
           user_id: userId,
           title: m.title,
           completed: m.completed,
-          completed_at: m.completedAt || null,
+          // completedAtが数値の場合はISO文字列に変換
+          completed_at: m.completedAt
+            ? (typeof m.completedAt === 'number'
+                ? new Date(m.completedAt).toISOString()
+                : m.completedAt)
+            : null,
           sort_order: index,
         }))
 

@@ -17,9 +17,11 @@ interface DraggableImageNodeProps {
   darkMode: boolean;
   isSelected: boolean;
   onSelect: (nodeId: string) => void;
+  zoom: number;
+  isFullscreenMode?: boolean;
 }
 
-export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pages, onToggleRoutine, darkMode, isSelected, onSelect }: DraggableImageNodeProps) => {
+export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pages, onToggleRoutine, darkMode, isSelected, onSelect, zoom, isFullscreenMode = false }: DraggableImageNodeProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
   const hoverFontSize = node.hoverFontSize || HOVER_FONT_SIZES.MEDIUM;
   const hoverTextColor = node.hoverTextColor || HOVER_TEXT_COLORS.WHITE;
 
-  const getAspectRatioForShape = (shape: string): number | null => {
+  const getAspectRatioForShape = (shape: string, originalRatio?: number): number | null => {
     switch (shape) {
       case IMAGE_SHAPES.SQUARE:
         return 1;
@@ -51,25 +53,46 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
         return 16 / 9;
       case IMAGE_SHAPES.PORTRAIT:
         return 3 / 4;
+      case IMAGE_SHAPES.ORIGINAL:
+        return originalRatio || null;
       default:
         return null;
     }
   };
 
   const handleShapeChange = (newShape: string) => {
-    const aspectRatio = getAspectRatioForShape(newShape);
-    let newWidth = node.width;
-    let newHeight = node.height;
+    if (newShape === IMAGE_SHAPES.ORIGINAL) {
+      // オリジナルのアスペクト比を取得
+      const img = new Image();
+      img.onload = () => {
+        const originalRatio = img.naturalWidth / img.naturalHeight;
+        let newWidth = node.width;
+        let newHeight = node.height;
 
-    if (aspectRatio) {
-      if (node.width > node.height * aspectRatio) {
-        newHeight = node.width / aspectRatio;
-      } else {
-        newWidth = node.height * aspectRatio;
+        if (node.width > node.height * originalRatio) {
+          newHeight = node.width / originalRatio;
+        } else {
+          newWidth = node.height * originalRatio;
+        }
+
+        onUpdate({ ...node, shape: newShape, width: newWidth, height: newHeight, originalAspectRatio: originalRatio });
+      };
+      img.src = node.src;
+    } else {
+      const aspectRatio = getAspectRatioForShape(newShape);
+      let newWidth = node.width;
+      let newHeight = node.height;
+
+      if (aspectRatio) {
+        if (node.width > node.height * aspectRatio) {
+          newHeight = node.width / aspectRatio;
+        } else {
+          newWidth = node.height * aspectRatio;
+        }
       }
-    }
 
-    onUpdate({ ...node, shape: newShape, width: newWidth, height: newHeight });
+      onUpdate({ ...node, shape: newShape, width: newWidth, height: newHeight });
+    }
   };
 
   const handleFontSizeChange = (newSize: string) => {
@@ -81,6 +104,11 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // 中クリックはボードパン用なのでスルー（親に伝播させる）
+    if (e.button === 1) return;
+    // 全画面モードではドラッグ・編集を無効化
+    if (isFullscreenMode) return;
+
     if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
     if ((e.target as HTMLElement).closest('button')) return;
 
@@ -98,7 +126,8 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
           setLocalSize({ width: node.width, height: node.height });
           setIsDragging(true);
           setShowPlaceHint(true);
-          startPos.current = { x: e.clientX - node.x, y: e.clientY - node.y };
+          const scale = zoom / 100;
+          startPos.current = { x: e.clientX - node.x * scale, y: e.clientY - node.y * scale };
         }
         clickCount.current = 0;
       }, 200);
@@ -135,8 +164,9 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
       const currentNode = nodeRef2.current;
 
       if (isDragging) {
-        let newX = e.clientX - startPos.current.x;
-        let newY = e.clientY - startPos.current.y;
+        const scale = zoom / 100;
+        let newX = (e.clientX - startPos.current.x) / scale;
+        let newY = (e.clientY - startPos.current.y) / scale;
 
         newX = Math.max(0, Math.min(newX, BOARD_WIDTH - localSize.width));
         newY = Math.max(0, Math.min(newY, BOARD_HEIGHT - localSize.height));
@@ -145,9 +175,10 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
         setLocalPos({ x: newX, y: newY });
       }
       if (isResizing && resizeDirection) {
-        const deltaX = e.clientX - startPos.current.x;
-        const deltaY = e.clientY - startPos.current.y;
-        const aspectRatio = getAspectRatioForShape(shape);
+        const scale = zoom / 100;
+        const deltaX = (e.clientX - startPos.current.x) / scale;
+        const deltaY = (e.clientY - startPos.current.y) / scale;
+        const aspectRatio = getAspectRatioForShape(shape, currentNode.originalAspectRatio);
 
         let newWidth = startSize.current.width;
         let newHeight = startSize.current.height;
@@ -199,6 +230,11 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
               newWidth = heightBasedWidth;
             }
           }
+
+          // アスペクト比で高さが変わった場合、n（上）を含む方向ならY座標を調整（下端を固定）
+          if (dir.includes('n') && !dir.includes('s')) {
+            newY = startNodePos.current.y + (startSize.current.height - newHeight);
+          }
         }
 
         newWidth = Math.min(newWidth, BOARD_WIDTH - newX);
@@ -242,7 +278,7 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
       window.removeEventListener('mouseup', handleMouseUp);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDragging, isResizing, resizeDirection, shape, localPos, localSize]);
+  }, [isDragging, isResizing, resizeDirection, shape, localPos, localSize, zoom]);
 
   const resizeHandles = [
     { position: 'n', cursor: 'ns-resize', style: { top: -4, left: '50%', transform: 'translateX(-50%)', width: 40, height: 8 } },
@@ -294,7 +330,7 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
           </div>
         )}
 
-        {isHovered && !isDragging && !isResizing && !showPlaceHint && (
+        {isHovered && !isDragging && !isResizing && !showPlaceHint && !isFullscreenMode && (
           <HoverPreview
             node={node}
             page={page}
@@ -305,33 +341,35 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
           />
         )}
 
-        <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-30">
-          <FontSizeSelector
-            currentSize={hoverFontSize}
-            currentColor={hoverTextColor}
-            onSizeChange={handleFontSizeChange}
-            onColorChange={handleTextColorChange}
-            darkMode={darkMode}
-          />
-          <ShapeSelector
-            currentShape={shape}
-            onShapeChange={handleShapeChange}
-            darkMode={darkMode}
-          />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(node.id);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="p-1.5 bg-red-500/80 hover:bg-red-600 rounded-full transition-colors"
-          >
-            <X size={14} className="text-white" />
-          </button>
-        </div>
+        {!isFullscreenMode && (
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-30">
+            <FontSizeSelector
+              currentSize={hoverFontSize}
+              currentColor={hoverTextColor}
+              onSizeChange={handleFontSizeChange}
+              onColorChange={handleTextColorChange}
+              darkMode={darkMode}
+            />
+            <ShapeSelector
+              currentShape={shape}
+              onShapeChange={handleShapeChange}
+              darkMode={darkMode}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(node.id);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="p-1.5 bg-red-500/80 hover:bg-red-600 rounded-full transition-colors"
+            >
+              <X size={14} className="text-white" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {(isHovered || isSelected) && !isDragging && (
+      {!isFullscreenMode && (isHovered || isSelected) && !isDragging && (
         <>
           {resizeHandles.map(handle => (
             <div

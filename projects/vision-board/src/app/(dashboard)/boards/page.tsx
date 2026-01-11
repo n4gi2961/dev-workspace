@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
-import { Plus } from 'lucide-react'
+import { Plus, MoreVertical, Pencil, Trash2, X, Check } from 'lucide-react'
 
 interface Board {
   id: string
@@ -22,6 +22,11 @@ export default function BoardsPage() {
   const supabase = useMemo(() => createClient(), [])
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -79,6 +84,47 @@ export default function BoardsPage() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  const handleDeleteBoard = async (boardId: string) => {
+    try {
+      const { error } = await supabase
+        .from('boards')
+        .delete()
+        .eq('id', boardId)
+
+      if (error) throw error
+      setBoards(boards.filter(b => b.id !== boardId))
+      setDeleteConfirmId(null)
+    } catch (err) {
+      console.error('Failed to delete board:', err)
+    }
+  }
+
+  const handleRenameBoard = async (boardId: string) => {
+    if (!editingName.trim()) return
+
+    try {
+      const { error } = await supabase
+        .from('boards')
+        .update({ name: editingName.trim(), updated_at: new Date().toISOString() })
+        .eq('id', boardId)
+
+      if (error) throw error
+      setBoards(boards.map(b =>
+        b.id === boardId ? { ...b, name: editingName.trim() } : b
+      ))
+      setEditingId(null)
+      setEditingName('')
+    } catch (err) {
+      console.error('Failed to rename board:', err)
+    }
+  }
+
+  const startEditing = (board: Board) => {
+    setEditingId(board.id)
+    setEditingName(board.name)
+    setOpenMenuId(null)
   }
 
   if (authLoading || loading) {
@@ -147,16 +193,105 @@ export default function BoardsPage() {
               </button>
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {boards.map((board) => (
                 <div
                   key={board.id}
-                  onClick={() => router.push(`/board/${board.id}`)}
-                  className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow"
+                  className="relative bg-white dark:bg-gray-800 shadow rounded-lg p-6 cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => {
+                    if (!openMenuId && !deleteConfirmId && !editingId) {
+                      router.push(`/board/${board.id}`)
+                    }
+                  }}
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    {board.name}
-                  </h3>
+                  {/* 三点リーダーメニュー */}
+                  <div className="absolute top-3 right-3" ref={openMenuId === board.id ? menuRef : null}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpenMenuId(openMenuId === board.id ? null : board.id)
+                      }}
+                      className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <MoreVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    </button>
+
+                    {openMenuId === board.id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenuId(null)
+                          }}
+                        />
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-xl z-50 py-1 border border-gray-200 dark:border-gray-600">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startEditing(board)
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            ボード名を編集
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteConfirmId(board.id)
+                              setOpenMenuId(null)
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            このボードを削除
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* ボード名（編集モード対応） */}
+                  {editingId === board.id ? (
+                    <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameBoard(board.id)
+                          if (e.key === 'Escape') {
+                            setEditingId(null)
+                            setEditingName('')
+                          }
+                        }}
+                        className="flex-1 px-2 py-1 text-lg font-semibold border border-blue-500 rounded outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleRenameBoard(board.id)}
+                        className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded"
+                      >
+                        <Check className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId(null)
+                          setEditingName('')
+                        }}
+                        className="p-1 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 pr-8">
+                      {board.name}
+                    </h3>
+                  )}
+
                   {board.description && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                       {board.description}
@@ -168,6 +303,41 @@ export default function BoardsPage() {
                 </div>
               ))}
             </div>
+
+            {/* 削除確認モーダル */}
+            {deleteConfirmId && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                <div
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm mx-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    ボードを削除
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    本当に削除してもよろしいですか？この操作は取り消せません。
+                  </p>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBoard(deleteConfirmId)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                    >
+                      削除する
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </div>
       </main>

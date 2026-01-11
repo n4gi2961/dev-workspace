@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical } from 'lucide-react';
+import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical } from 'lucide-react';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { BLOCK_TYPES, NODE_TYPES, IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
 import { HOVER_FONT_CONFIG, ROUTINE_COLORS, FONT_OPTIONS, SIZE_OPTIONS, COLOR_OPTIONS_DARK, COLOR_OPTIONS_LIGHT } from '@/constants/styles';
@@ -29,15 +29,17 @@ import { PageEditor } from '@/components/features/PageEditor';
 import { useNodes, Node } from '@/hooks/useNodes';
 import { usePages } from '@/hooks/usePages';
 import { uploadImage } from '@/lib/supabase/storage';
-import { createInitialPage as createEmptyPage } from '@/lib/pageMapper';
+import { createInitialPage as createEmptyPage, Page } from '@/lib/pageMapper';
+import { domToPng } from 'modern-screenshot';
 
 interface VisionBoardProps {
   boardId?: string;
   userId?: string;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
 // Main Vision Board Component
-export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
+export default function VisionBoard({ boardId, userId, onFullscreenChange }: VisionBoardProps) {
   const [darkMode, setDarkMode] = useState(true);
 
   // ✅ useNodesフックを使用
@@ -60,18 +62,56 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
     saveRoutines,
     loading: pagesLoading
   } = usePages(userId);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [editingPageId, setEditingPageId] = useState(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(true);
   const [isPanning, setIsPanning] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
   const [showWallpaperExport, setShowWallpaperExport] = useState(false);
-  const boardRef = useRef(null);
-  const containerRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const [isFullscreenMode, setIsFullscreenMode] = useState(false);
+
+  // 全画面モード変更時に親に通知
+  useEffect(() => {
+    onFullscreenChange?.(isFullscreenMode);
+  }, [isFullscreenMode, onFullscreenChange]);
+
+  // ブラウザ全画面モードの開始
+  const enterFullscreen = useCallback(async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreenMode(true);
+    } catch (err) {
+      // Fullscreen APIが使えない場合はアプリ内全画面のみ
+      setIsFullscreenMode(true);
+    }
+  }, []);
+
+  // ブラウザ全画面モードの終了
+  const exitFullscreen = useCallback(async () => {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    }
+    setIsFullscreenMode(false);
+  }, []);
+
+  // Escキーでブラウザ全画面が解除された時の同期
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isFullscreenMode) {
+        setIsFullscreenMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [isFullscreenMode]);
+
+  const boardRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
   const initialScrollDone = useRef(false);
+  const fullscreenOverlayRef = useRef<HTMLDivElement>(null);
 
   // Scroll to center on initial load
   useEffect(() => {
@@ -89,11 +129,23 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
   // （Supabase永続化により、毎回DBへの更新が発生するため）
   // テキスト色はユーザーが手動で設定してください
 
+  // ✅ ノード読み込み完了時にページを自動プリフェッチ（ホバー即時表示のため）
+  useEffect(() => {
+    if (!nodesLoading && nodes.length > 0 && userId) {
+      nodes.forEach(node => {
+        if (node.type === 'image') {
+          getPage(node.id);
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodesLoading, userId]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const handleMouseDown = (e) => {
+    const handleMouseDown = (e: MouseEvent) => {
       if (e.button === 1) {
         e.preventDefault();
         setIsPanning(true);
@@ -107,7 +159,7 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
       }
     };
 
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (!isPanning) return;
       e.preventDefault();
       const dx = e.clientX - panStart.current.x;
@@ -116,7 +168,7 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
       container.scrollTop = panStart.current.scrollTop - dy;
     };
 
-    const handleMouseUp = (e) => {
+    const handleMouseUp = (e: MouseEvent) => {
       if (e.button === 1 || isPanning) {
         setIsPanning(false);
         container.style.cursor = 'default';
@@ -217,12 +269,19 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
     }
   };
 
-  const updatePage = (pageData) => {
+  const updatePage = (pageData: Page) => {
     if (!editingPageId) return;
     // ✅ ローカル更新（楽観的更新）
     updatePageLocal(editingPageId, pageData);
     // ✅ Supabaseに保存
     savePage(editingPageId, pageData);
+    // ✅ マイルストーン・ルーティンも保存
+    if (pageData.milestones) {
+      saveMilestones(editingPageId, pageData.milestones);
+    }
+    if (pageData.routines) {
+      saveRoutines(editingPageId, pageData.routines);
+    }
   };
 
   const handleToggleRoutine = (nodeId: string, routineId: string, date: string) => {
@@ -252,9 +311,12 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
     setEditingPageId(nodeId);
   };
 
-  const handleBoardDoubleClick = (e) => {
+  const handleBoardDoubleClick = (e: React.MouseEvent) => {
+    // 全画面モードではテキスト作成を無効化
+    if (isFullscreenMode) return;
     if (e.target === boardRef.current) {
       const container = containerRef.current;
+      if (!container) return;
       const rect = container.getBoundingClientRect();
       const x = e.clientX - rect.left + container.scrollLeft;
       const y = e.clientY - rect.top + container.scrollTop;
@@ -262,13 +324,13 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
     }
   };
 
-  const handleBoardClick = (e) => {
+  const handleBoardClick = (e: React.MouseEvent) => {
     if (e.target === boardRef.current) {
       setSelectedNode(null);
     }
   };
 
-  const handleZoomChange = (newZoom) => {
+  const handleZoomChange = (newZoom: number) => {
     const container = containerRef.current;
     if (!container) {
       setZoom(newZoom);
@@ -295,6 +357,70 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
     });
   };
 
+  // 全画面モードでのスクリーンショットダウンロード
+  const handleFullscreenDownload = async () => {
+    const container = containerRef.current;
+    const board = boardRef.current;
+    if (!container || !board) return;
+
+    // オーバーレイUIを一時的に非表示
+    if (fullscreenOverlayRef.current) {
+      fullscreenOverlayRef.current.style.display = 'none';
+    }
+
+    try {
+      // 現在のスクロール位置とビューポートサイズを取得
+      const scrollLeft = container.scrollLeft;
+      const scrollTop = container.scrollTop;
+      const viewportWidth = container.clientWidth;
+      const viewportHeight = container.clientHeight;
+
+      // ボード全体をキャプチャしてからクロップ
+      // ※ キャプチャ画像はズーム後のサイズになる（transform: noneは効かない）
+      const imageScale = 2; // 高解像度出力用
+      const dataUrl = await domToPng(board, {
+        backgroundColor: darkMode ? '#030712' : '#f9fafb',
+        scale: imageScale,
+      });
+
+      // キャンバスでクロップ処理
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = viewportWidth * imageScale;
+        canvas.height = viewportHeight * imageScale;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // キャプチャ画像はズーム後のサイズなので、スクロール位置をそのまま使用
+        ctx.drawImage(
+          img,
+          scrollLeft * imageScale,      // ソースX（スクロール位置そのまま）
+          scrollTop * imageScale,       // ソースY
+          viewportWidth * imageScale,   // ソース幅（ビューポートサイズ）
+          viewportHeight * imageScale,  // ソース高さ
+          0, 0,
+          viewportWidth * imageScale,
+          viewportHeight * imageScale
+        );
+
+        // JPEG画像としてダウンロード（品質0.92で高画質かつ軽量）
+        const link = document.createElement('a');
+        link.download = `vision-board-${new Date().toISOString().slice(0, 10)}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.92);
+        link.click();
+      };
+      img.src = dataUrl;
+    } catch (error) {
+      console.error('Screenshot failed:', error);
+    } finally {
+      // オーバーレイUIを再表示
+      if (fullscreenOverlayRef.current) {
+        fullscreenOverlayRef.current.style.display = 'flex';
+      }
+    }
+  };
+
   const editingPage = editingPageId ? pages[editingPageId] : null;
   const editingNode = editingPageId ? nodes.find(n => n.id === editingPageId) : null;
 
@@ -305,7 +431,8 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
       }`}
       style={{ fontFamily: "'Noto Sans JP', 'SF Pro Display', -apple-system, sans-serif" }}
     >
-      {/* Toolbar */}
+      {/* Toolbar - hidden in fullscreen mode */}
+      {!isFullscreenMode && (
       <div className={`flex-shrink-0 ${
         darkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'
       } border-b backdrop-blur-xl z-40`}>
@@ -375,28 +502,40 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Scrollable Board Container */}
-      <div 
+      <div
         ref={containerRef}
         className={`flex-1 overflow-auto relative ${isPanning ? 'cursor-grabbing' : ''}`}
+        style={{
+          scrollbarColor: darkMode ? '#374151 #111827' : '#d1d5db #f3f4f6',
+          scrollbarWidth: 'thin',
+        }}
       >
+        {/* スクロール領域をズーム後のサイズに制限するラッパー */}
         <div
-          ref={boardRef}
-          className={`relative ${darkMode ? 'bg-gray-950' : 'bg-gray-50'}`}
-          style={{ 
-            width: BOARD_WIDTH * (zoom / 100), 
+          style={{
+            width: BOARD_WIDTH * (zoom / 100),
             height: BOARD_HEIGHT * (zoom / 100),
-            backgroundImage: darkMode 
-              ? 'radial-gradient(circle, #374151 1px, transparent 1px)' 
-              : 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
-            backgroundSize: `${24 * (zoom / 100)}px ${24 * (zoom / 100)}px`,
-            transform: `scale(${zoom / 100})`,
-            transformOrigin: 'top left',
           }}
-          onClick={handleBoardClick}
-          onDoubleClick={handleBoardDoubleClick}
         >
+          <div
+            ref={boardRef}
+            className={`relative ${darkMode ? 'bg-gray-950' : 'bg-gray-50'}`}
+            style={{
+              width: BOARD_WIDTH,
+              height: BOARD_HEIGHT,
+              backgroundImage: darkMode
+                ? 'radial-gradient(circle, #374151 1px, transparent 1px)'
+                : 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
+              backgroundSize: '24px 24px',
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: 'top left',
+            }}
+            onClick={handleBoardClick}
+            onDoubleClick={handleBoardDoubleClick}
+          >
           {nodes.map(node => (
             node.type === NODE_TYPES.IMAGE ? (
               <DraggableImageNode
@@ -410,6 +549,8 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
                 darkMode={darkMode}
                 isSelected={selectedNode === node.id}
                 onSelect={setSelectedNode}
+                zoom={zoom}
+                isFullscreenMode={isFullscreenMode}
               />
             ) : (
               <DraggableTextNode
@@ -420,6 +561,7 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
                 darkMode={darkMode}
                 isSelected={selectedNode === node.id}
                 onSelect={setSelectedNode}
+                isFullscreenMode={isFullscreenMode}
               />
             )
           ))}
@@ -427,6 +569,7 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
           <div className={`absolute inset-0 pointer-events-none border-2 border-dashed ${
             darkMode ? 'border-gray-800' : 'border-gray-300'
           } rounded-lg`} style={{ width: BOARD_WIDTH, height: BOARD_HEIGHT }} />
+          </div>
         </div>
 
         {nodesLoading ? (
@@ -464,20 +607,68 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
       {editingPageId && editingPage && (
         <PageEditor
           page={editingPage}
-          nodeImage={editingNode?.src}
+          nodeImage={editingNode?.src || ''}
           onUpdate={updatePage}
           onClose={() => setEditingPageId(null)}
           darkMode={darkMode}
         />
       )}
 
-      <ZoomControl 
-        zoom={zoom} 
-        onZoomChange={handleZoomChange} 
-        onFullscreen={() => setShowAmbientMode(true)}
-        onExportWallpaper={() => setShowWallpaperExport(true)}
-        darkMode={darkMode} 
-      />
+      {!isFullscreenMode && (
+        <ZoomControl
+          zoom={zoom}
+          onZoomChange={handleZoomChange}
+          onSlideshow={() => setShowAmbientMode(true)}
+          onEnterFullscreen={enterFullscreen}
+          darkMode={darkMode}
+        />
+      )}
+
+      {/* Fullscreen Mode Overlay UI - 右下に配置（ズーム機能 | スクショ、終了） */}
+      {isFullscreenMode && (
+        <div ref={fullscreenOverlayRef} className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 bg-black/50 backdrop-blur-sm rounded-xl">
+          {/* ズーム機能 */}
+          <button
+            onClick={() => handleZoomChange(Math.max(25, zoom - 25))}
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            title="ズームアウト"
+          >
+            <ZoomOut size={16} className="text-white" />
+          </button>
+          <input
+            type="range"
+            min={25}
+            max={200}
+            value={zoom}
+            onChange={(e) => handleZoomChange(parseInt(e.target.value))}
+            className="w-20 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-violet-500"
+          />
+          <button
+            onClick={() => handleZoomChange(Math.min(200, zoom + 25))}
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            title="ズームイン"
+          >
+            <ZoomIn size={16} className="text-white" />
+          </button>
+          <span className="text-xs font-medium w-10 text-center text-white">{zoom}%</span>
+          <div className="w-px h-5 bg-white/20" />
+          {/* スクショ・終了 */}
+          <button
+            onClick={handleFullscreenDownload}
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            title="スクリーンショット"
+          >
+            <Download size={16} className="text-white" />
+          </button>
+          <button
+            onClick={exitFullscreen}
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            title="全画面終了"
+          >
+            <Minimize size={16} className="text-white" />
+          </button>
+        </div>
+      )}
 
       {showAmbientMode && (
         <AmbientMode
@@ -495,7 +686,8 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
         />
       )}
 
-      {showHint && (
+      {/* ヒントUI - 全画面時は非表示 */}
+      {!isFullscreenMode && showHint && (
         <div className={`fixed bottom-4 left-4 px-4 py-2 rounded-xl text-xs flex items-center gap-3 z-30 ${
           darkMode ? 'bg-gray-800/90 text-gray-400' : 'bg-white/90 text-gray-500'
         } backdrop-blur-sm`}>
@@ -513,7 +705,7 @@ export default function VisionBoard({ boardId, userId }: VisionBoardProps) {
         </div>
       )}
 
-      {!showHint && (
+      {!isFullscreenMode && !showHint && (
         <button
           onClick={() => setShowHint(true)}
           className={`fixed bottom-4 left-4 p-2 rounded-xl z-30 ${

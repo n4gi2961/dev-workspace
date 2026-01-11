@@ -11,6 +11,7 @@ export const AmbientMode = ({ nodes, darkMode, onClose }: AmbientModeProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const imageNodes = nodes.filter(n => n.type === NODE_TYPES.IMAGE);
 
+  // 画像変更から8秒後に次の画像へ（手動変更でもリセット）
   useEffect(() => {
     if (imageNodes.length <= 1) return;
 
@@ -19,7 +20,7 @@ export const AmbientMode = ({ nodes, darkMode, onClose }: AmbientModeProps) => {
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [imageNodes.length]);
+  }, [imageNodes.length, currentIndex]);  // currentIndex追加でリセット
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

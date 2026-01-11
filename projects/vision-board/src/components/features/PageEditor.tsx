@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ImagePlus, FileText, Target, Calendar, BarChart3, ChevronLeft, ChevronRight, GripVertical, CheckSquare, Square, Trash2 } from 'lucide-react';
 import { CATEGORIES, DECADES } from '@/constants/ui';
+import { ROUTINE_COLORS } from '@/constants/styles';
 import { generateId, getTodayString } from '@/lib/utils';
 import { getEncouragementMessage } from '@/lib/messages';
 import { MilestoneInput } from '@/components/ui/MilestoneInput';
@@ -20,6 +21,18 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
   const [activeTab, setActiveTab] = useState('overview');
   const [weekOffset, setWeekOffset] = useState(0);
   const [dragMilestoneIndex, setDragMilestoneIndex] = useState<number | null>(null);
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
+  const [editingMilestoneTitle, setEditingMilestoneTitle] = useState('');
+
+  // ローカルstate（タイトル・概要用、高速入力バグ対策）
+  const [localTitle, setLocalTitle] = useState(page.title);
+  const [localDescription, setLocalDescription] = useState(page.description || '');
+
+  // page変更時にローカルstateを同期
+  useEffect(() => {
+    setLocalTitle(page.title);
+    setLocalDescription(page.description || '');
+  }, [page.title, page.description]);
 
   const tabs = [
     { id: 'overview', label: '概要', icon: FileText },
@@ -61,6 +74,19 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
     updateField('milestones', (page.milestones || []).filter((m: any) => m.id !== id));
   };
 
+  const updateMilestoneTitle = (id: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    const milestones = (page.milestones || []).map((m: any) => {
+      if (m.id === id) {
+        return { ...m, title: newTitle.trim() };
+      }
+      return m;
+    });
+    updateField('milestones', milestones);
+    setEditingMilestoneId(null);
+    setEditingMilestoneTitle('');
+  };
+
   const reorderMilestones = (fromIndex: number, toIndex: number) => {
     const milestones = [...(page.milestones || [])];
     const [moved] = milestones.splice(fromIndex, 1);
@@ -70,10 +96,11 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
 
   // Routine functions
   const addRoutine = (title: string) => {
+    const randomColor = ROUTINE_COLORS[Math.floor(Math.random() * ROUTINE_COLORS.length)];
     const newRoutine = {
       id: generateId(),
       title,
-      color: '#8b5cf6',
+      color: randomColor,
       history: {},
     };
     updateField('routines', [...(page.routines || []), newRoutine]);
@@ -105,6 +132,17 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
     updateField('routines', routines);
   };
 
+  const updateRoutineTitle = (id: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    const routines = (page.routines || []).map((r: any) => {
+      if (r.id === id) {
+        return { ...r, title: newTitle.trim() };
+      }
+      return r;
+    });
+    updateField('routines', routines);
+  };
+
   const reorderRoutines = (fromIndex: number, toIndex: number) => {
     const routines = [...(page.routines || [])];
     const [moved] = routines.splice(fromIndex, 1);
@@ -127,7 +165,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
     const routines = page.routines || [];
     if (routines.length === 0) return 0;
 
-    const last30Days = [];
+    const last30Days: string[] = [];
     const today = new Date();
     for (let i = 0; i < 30; i++) {
       const date = new Date(today);
@@ -185,8 +223,9 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <input
               type="text"
-              value={page.title}
-              onChange={(e) => updateField('title', e.target.value)}
+              value={localTitle}
+              onChange={(e) => setLocalTitle(e.target.value)}
+              onBlur={() => updateField('title', localTitle)}
               placeholder="目標のタイトル"
               className="w-full text-3xl font-bold bg-transparent border-none outline-none text-white placeholder-white/50 drop-shadow-lg"
             />
@@ -262,8 +301,9 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                     概要・メモ
                   </label>
                   <textarea
-                    value={page.description || ''}
-                    onChange={(e) => updateField('description', e.target.value)}
+                    value={localDescription}
+                    onChange={(e) => setLocalDescription(e.target.value)}
+                    onBlur={() => updateField('description', localDescription)}
                     placeholder="この目標について自由に記述..."
                     rows={4}
                     className={`w-full px-4 py-3 rounded-lg resize-none ${
@@ -339,13 +379,41 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                         <Square size={20} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
                       )}
                     </button>
-                    <span className={`flex-1 ${
-                      milestone.completed
-                        ? 'line-through opacity-60'
-                        : darkMode ? 'text-gray-200' : 'text-gray-700'
-                    }`}>
-                      {milestone.title}
-                    </span>
+                    {editingMilestoneId === milestone.id ? (
+                      <input
+                        type="text"
+                        value={editingMilestoneTitle}
+                        onChange={(e) => setEditingMilestoneTitle(e.target.value)}
+                        onBlur={() => updateMilestoneTitle(milestone.id, editingMilestoneTitle)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') updateMilestoneTitle(milestone.id, editingMilestoneTitle);
+                          if (e.key === 'Escape') {
+                            setEditingMilestoneId(null);
+                            setEditingMilestoneTitle('');
+                          }
+                        }}
+                        className={`flex-1 px-2 py-0.5 rounded border outline-none ${
+                          darkMode
+                            ? 'bg-gray-700 text-gray-200 border-violet-500'
+                            : 'bg-white text-gray-700 border-violet-500'
+                        }`}
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className={`flex-1 cursor-pointer ${
+                          milestone.completed
+                            ? 'line-through opacity-60'
+                            : darkMode ? 'text-gray-200' : 'text-gray-700'
+                        }`}
+                        onDoubleClick={() => {
+                          setEditingMilestoneId(milestone.id);
+                          setEditingMilestoneTitle(milestone.title);
+                        }}
+                      >
+                        {milestone.title}
+                      </span>
+                    )}
                     {milestone.completedAt && (
                       <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                         {new Date(milestone.completedAt).toLocaleDateString('ja-JP')}
@@ -410,6 +478,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                   onAddRoutine={addRoutine}
                   onDeleteRoutine={deleteRoutine}
                   onUpdateRoutineColor={updateRoutineColor}
+                  onUpdateRoutineTitle={updateRoutineTitle}
                   onReorder={reorderRoutines}
                   darkMode={darkMode}
                 />

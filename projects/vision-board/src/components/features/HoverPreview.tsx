@@ -14,7 +14,7 @@ interface HoverPreviewProps {
 
 export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, textColor }: HoverPreviewProps) => {
   const todayString = getTodayString();
-  const fontConfig = HOVER_FONT_CONFIG[fontSize] || HOVER_FONT_CONFIG[HOVER_FONT_SIZES.MEDIUM];
+  const fontConfig = HOVER_FONT_CONFIG[fontSize as keyof typeof HOVER_FONT_CONFIG] || HOVER_FONT_CONFIG[HOVER_FONT_SIZES.MEDIUM];
   const color = textColor === HOVER_TEXT_COLORS.BLACK ? '#000000' : '#ffffff';
   const mutedColor = textColor === HOVER_TEXT_COLORS.BLACK ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)';
 
@@ -36,7 +36,7 @@ export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, 
         }}
       />
 
-      <div className="absolute inset-0 p-4 overflow-y-auto">
+      <div className="absolute inset-0 pt-10 px-4 pb-4 overflow-y-auto">
         <h3
           className="font-bold mb-3 drop-shadow-lg"
           style={{ fontSize: `${fontConfig.title}px`, color }}
@@ -64,9 +64,9 @@ export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, 
                   className="flex items-center gap-2 hover:bg-white/10 rounded px-1 py-0.5 transition-colors w-full text-left"
                 >
                   {routine.todayChecked ? (
-                    <CheckSquare style={{ width: fontConfig.icon, height: fontConfig.icon }} className="text-emerald-400 flex-shrink-0" />
+                    <CheckSquare style={{ width: fontConfig.icon, height: fontConfig.icon, color: routine.color || '#8b5cf6' }} className="flex-shrink-0" />
                   ) : (
-                    <Square style={{ width: fontConfig.icon, height: fontConfig.icon, color: mutedColor }} className="flex-shrink-0" />
+                    <Square style={{ width: fontConfig.icon, height: fontConfig.icon, color: routine.color || '#8b5cf6', opacity: 0.5 }} className="flex-shrink-0" />
                   )}
                   <span
                     style={{

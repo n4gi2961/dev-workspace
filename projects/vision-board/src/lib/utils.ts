@@ -1,15 +1,22 @@
 import { ROUTINE_COLORS } from '@/constants/styles';
 
 // ID generation
-export const generateId = () => Math.random().toString(36).substr(2, 9);
+export const generateId = () => crypto.randomUUID();
 
 // Random color selection
 export const getRandomColor = () => ROUTINE_COLORS[Math.floor(Math.random() * ROUTINE_COLORS.length)];
 
+// ローカル時刻でYYYY-MM-DD形式の日付文字列を生成
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Date utilities
 export const getTodayString = () => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+  return formatLocalDate(new Date());
 };
 
 export const getWeekDates = (offset = 0) => {
@@ -22,7 +29,7 @@ export const getWeekDates = (offset = 0) => {
   for (let i = 0; i < 7; i++) {
     const date = new Date(monday);
     date.setDate(monday.getDate() + i);
-    dates.push(date.toISOString().split('T')[0]);
+    dates.push(formatLocalDate(date));
   }
   return dates;
 };
@@ -36,20 +43,20 @@ export const getMonthDates = (year: number, month: number) => {
   const startPadding = (firstDay.getDay() + 6) % 7; // Monday = 0
   for (let i = startPadding - 1; i >= 0; i--) {
     const date = new Date(year, month, -i);
-    dates.push({ date: date.toISOString().split('T')[0], isCurrentMonth: false });
+    dates.push({ date: formatLocalDate(date), isCurrentMonth: false });
   }
 
   // Add all days of the month
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const date = new Date(year, month, day);
-    dates.push({ date: date.toISOString().split('T')[0], isCurrentMonth: true });
+    dates.push({ date: formatLocalDate(date), isCurrentMonth: true });
   }
 
   // Add padding for days after the last of the month
   const endPadding = (7 - (dates.length % 7)) % 7;
   for (let i = 1; i <= endPadding; i++) {
     const date = new Date(year, month + 1, i);
-    dates.push({ date: date.toISOString().split('T')[0], isCurrentMonth: false });
+    dates.push({ date: formatLocalDate(date), isCurrentMonth: false });
   }
 
   return dates;

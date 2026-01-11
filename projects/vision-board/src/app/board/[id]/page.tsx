@@ -33,6 +33,7 @@ export default function BoardPage({ params }: BoardPageProps) {
   const [board, setBoard] = useState<Board | null>(null)
   const [loading, setLoading] = useState(true)
   const [boardNotFound, setBoardNotFound] = useState(false)
+  const [isFullscreenMode, setIsFullscreenMode] = useState(false)
 
   useEffect(() => {
     // ログインチェック
@@ -134,19 +135,25 @@ export default function BoardPage({ params }: BoardPageProps) {
   // Vision Board表示
   return (
     <div className="relative h-screen">
-      {/* 戻るボタン */}
-      <div className="absolute top-4 left-4 z-50">
-        <button
-          onClick={() => router.push('/boards')}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg backdrop-blur-sm transition-all"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          ボード一覧
-        </button>
-      </div>
+      {/* 戻るボタン - 全画面時は非表示 */}
+      {!isFullscreenMode && (
+        <div className="absolute top-4 left-4 z-50">
+          <button
+            onClick={() => router.push('/boards')}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg backdrop-blur-sm transition-all"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            ボード一覧
+          </button>
+        </div>
+      )}
 
       {/* Vision Board本体 - ✅ userIdを渡す */}
-      <VisionBoard boardId={boardId} userId={user.id} />
+      <VisionBoard
+        boardId={boardId}
+        userId={user.id}
+        onFullscreenChange={setIsFullscreenMode}
+      />
     </div>
   )
 }

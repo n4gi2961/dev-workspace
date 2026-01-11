@@ -23,15 +23,15 @@ export const ColorPicker = ({ color, onChange, darkMode }: ColorPickerProps) => 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className={`absolute left-0 top-full mt-1 p-2 rounded-lg shadow-xl z-50 ${
+          <div className={`absolute left-5 bottom-[20%] mb-1 p-2 rounded-lg shadow-xl z-50 ${
             darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
           }`}>
-            <div className="grid grid-cols-5 gap-1">
+            <div className="flex flex-wrap gap-2 min-w-[160px]">
               {ROUTINE_COLORS.map(c => (
                 <button
                   key={c}
                   onClick={() => { onChange(c); setIsOpen(false); }}
-                  className={`w-5 h-5 rounded-full ${color === c ? 'ring-2 ring-white' : ''}`}
+                  className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${color === c ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-800' : ''}`}
                   style={{ backgroundColor: c }}
                 />
               ))}

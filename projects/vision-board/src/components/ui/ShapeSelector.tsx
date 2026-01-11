@@ -13,6 +13,7 @@ export const ShapeSelector = ({ currentShape, onShapeChange, darkMode }: ShapeSe
 
   const shapes = [
     { id: IMAGE_SHAPES.FREE, label: '自由' },
+    { id: IMAGE_SHAPES.ORIGINAL, label: 'オリジナル' },
     { id: IMAGE_SHAPES.SQUARE, label: '正方形' },
     { id: IMAGE_SHAPES.LANDSCAPE, label: '横長 16:9' },
     { id: IMAGE_SHAPES.PORTRAIT, label: '縦長 3:4' },

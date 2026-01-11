@@ -15,6 +15,7 @@ export const NODE_TYPES = {
 // Image shapes
 export const IMAGE_SHAPES = {
   FREE: 'free',
+  ORIGINAL: 'original',
   SQUARE: 'square',
   LANDSCAPE: 'landscape',
   PORTRAIT: 'portrait',

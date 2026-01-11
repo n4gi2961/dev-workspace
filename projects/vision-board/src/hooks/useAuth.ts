@@ -13,7 +13,7 @@ export function useAuth() {
   useEffect(() => {
     // ✅ getSession()はローカルストレージを先にチェック（高速）
     // getUser()は毎回サーバーに問い合わせる（遅い）
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })

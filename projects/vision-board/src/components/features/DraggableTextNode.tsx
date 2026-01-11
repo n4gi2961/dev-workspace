@@ -9,9 +9,10 @@ interface DraggableTextNodeProps {
   darkMode: boolean;
   isSelected: boolean;
   onSelect: (nodeId: string) => void;
+  isFullscreenMode?: boolean;
 }
 
-export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelected, onSelect }: DraggableTextNodeProps) => {
+export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelected, onSelect, isFullscreenMode = false }: DraggableTextNodeProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isEditing, setIsEditing] = useState(node.isNew || false);
@@ -47,6 +48,11 @@ export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelect
   }, [isHovered, isDragging, isEditing]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // 中クリックはボードパン用なのでスルー（親に伝播させる）
+    if (e.button === 1) return;
+    // 全画面モードではドラッグ・編集を無効化
+    if (isFullscreenMode) return;
+
     if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
     if ((e.target as HTMLElement).closest('.toolbar')) return;
 
@@ -67,7 +73,9 @@ export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelect
     } else if (clickCount.current === 2) {
       if (clickTimer.current) clearTimeout(clickTimer.current);
       clickCount.current = 0;
-      setIsEditing(true);
+      if (!isFullscreenMode) {
+        setIsEditing(true);
+      }
     }
   };
 
@@ -162,7 +170,7 @@ export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelect
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {showToolbar && !isDragging && !isEditing && (
+      {showToolbar && !isDragging && !isEditing && !isFullscreenMode && (
         <div
           className="toolbar absolute -top-12 left-0 right-0 h-14"
           onMouseEnter={() => setIsHovered(true)}
@@ -205,7 +213,7 @@ export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelect
         </div>
       )}
 
-      {(isHovered || showToolbar) && !isEditing && (
+      {(isHovered || showToolbar) && !isEditing && !isFullscreenMode && (
         <div
           className="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize"
           onMouseDown={handleResizeStart}
