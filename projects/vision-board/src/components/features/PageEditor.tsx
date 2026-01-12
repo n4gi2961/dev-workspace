@@ -193,7 +193,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-4xl h-[90vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col ${
+        className={`w-full max-w-[95vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl h-[95vh] sm:h-[90vh] overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl flex flex-col ${
           darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -202,7 +202,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
         <div
           className="bg-cover bg-center relative flex-shrink-0"
           style={{
-            height: '27vh',
+            height: '20vh',
             backgroundImage: page.headerImage || nodeImage ? `url(${page.headerImage || nodeImage})` : undefined,
             backgroundColor: !page.headerImage && !nodeImage ? (darkMode ? '#374151' : '#e5e7eb') : undefined,
           }}

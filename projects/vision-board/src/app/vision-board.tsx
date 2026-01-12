@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical } from 'lucide-react';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { BLOCK_TYPES, NODE_TYPES, IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
 import { HOVER_FONT_CONFIG, ROUTINE_COLORS, FONT_OPTIONS, SIZE_OPTIONS, COLOR_OPTIONS_DARK, COLOR_OPTIONS_LIGHT } from '@/constants/styles';
-import { CATEGORIES, DECADES, SAMPLE_IMAGES } from '@/constants/ui';
 import { generateId, getRandomColor, getTodayString, getWeekDates, getMonthDates, getDayLabel } from '@/lib/utils';
 import { getEncouragementMessage } from '@/lib/messages';
 import { createInitialBlocks } from '@/lib/initialData';
@@ -29,8 +28,18 @@ import { PageEditor } from '@/components/features/PageEditor';
 import { useNodes, Node } from '@/hooks/useNodes';
 import { usePages } from '@/hooks/usePages';
 import { uploadImage } from '@/lib/supabase/storage';
+import { createClient } from '@/lib/supabase/client';
 import { createInitialPage as createEmptyPage, Page } from '@/lib/pageMapper';
 import { domToPng } from 'modern-screenshot';
+
+// 画面幅に応じた初期ズーム値を計算
+const calculateInitialZoom = (): number => {
+  if (typeof window === 'undefined') return 70;
+  const width = window.innerWidth;
+  if (width < 640) return 30;   // モバイル
+  if (width < 1024) return 50;  // タブレット
+  return 70;                    // デスクトップ
+};
 
 interface VisionBoardProps {
   boardId?: string;
@@ -41,6 +50,8 @@ interface VisionBoardProps {
 // Main Vision Board Component
 export default function VisionBoard({ boardId, userId, onFullscreenChange }: VisionBoardProps) {
   const [darkMode, setDarkMode] = useState(true);
+  // ✅ Supabaseクライアント（useMemoでキャッシュ）
+  const supabase = useMemo(() => createClient(), []);
 
   // ✅ useNodesフックを使用
   const {
@@ -64,9 +75,15 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   } = usePages(userId);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
-  const [showHint, setShowHint] = useState(true);
+  // ✅ ヒント表示状態（null = 読み込み中）
+  const [showHint, setShowHint] = useState<boolean | null>(null);
   const [isPanning, setIsPanning] = useState(false);
-  const [zoom, setZoom] = useState(100);
+  // ✅ ズーム値（null = 読み込み中）
+  const [zoom, setZoom] = useState<number | null>(null);
+  // ✅ 保存されたスクロール位置（null = 中央揃えを使用）
+  const [initialScroll, setInitialScroll] = useState<{x: number, y: number} | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const saveSettingsRef = useRef<NodeJS.Timeout | null>(null);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
   const [showWallpaperExport, setShowWallpaperExport] = useState(false);
   const [isFullscreenMode, setIsFullscreenMode] = useState(false);
@@ -113,17 +130,200 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   const initialScrollDone = useRef(false);
   const fullscreenOverlayRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to center on initial load
+  // ✅ 設定をローカルキャッシュ/DBから読み込み（zoom, scroll, showHint）
   useEffect(() => {
-    if (containerRef.current && !initialScrollDone.current) {
+    const loadSettings = async () => {
+      if (!boardId || !userId) {
+        // ボードIDがない場合はデフォルト値
+        setZoom(calculateInitialZoom());
+        setShowHint(true);
+        setSettingsLoaded(true);
+        return;
+      }
+
+      // 1. ローカルキャッシュ確認
+      const cachedZoom = localStorage.getItem(`board-zoom-${boardId}`);
+      const cachedScroll = localStorage.getItem(`board-scroll-${boardId}`);
+      const cachedShowHint = localStorage.getItem(`board-showHint-${boardId}`);
+
+      let hasCache = false;
+
+      if (cachedZoom) {
+        setZoom(parseInt(cachedZoom));
+        hasCache = true;
+      }
+
+      if (cachedScroll) {
+        try {
+          const scroll = JSON.parse(cachedScroll);
+          setInitialScroll({ x: scroll.x, y: scroll.y });
+        } catch { /* ignore */ }
+      }
+
+      if (cachedShowHint !== null) {
+        setShowHint(cachedShowHint === 'true');
+      }
+
+      // キャッシュがあればDB読み込みをスキップ
+      if (hasCache) {
+        if (cachedShowHint === null) setShowHint(true);
+        setSettingsLoaded(true);
+        return;
+      }
+
+      // 2. DBから取得
+      try {
+        const { data } = await supabase
+          .from('boards')
+          .select('settings')
+          .eq('id', boardId)
+          .single();
+
+        const settings = data?.settings || {};
+
+        // ズーム
+        if (settings.zoom) {
+          setZoom(settings.zoom);
+          localStorage.setItem(`board-zoom-${boardId}`, settings.zoom.toString());
+        } else {
+          const initialZoom = calculateInitialZoom();
+          setZoom(initialZoom);
+        }
+
+        // ヒント表示状態
+        if (settings.showHint !== undefined) {
+          setShowHint(settings.showHint);
+          localStorage.setItem(`board-showHint-${boardId}`, settings.showHint.toString());
+        } else {
+          setShowHint(true);
+        }
+      } catch {
+        // エラー時はデフォルト値
+        setZoom(calculateInitialZoom());
+        setShowHint(true);
+      }
+      setSettingsLoaded(true);
+    };
+
+    loadSettings();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId, userId]);
+
+  // ✅ ズーム変更時（中央維持 + デバウンス保存）
+  const handleZoomChange = useCallback((newZoom: number) => {
+    const container = containerRef.current;
+    const currentZoom = zoom ?? 70;
+
+    if (container) {
+      // Calculate center point before zoom
+      const centerX = container.scrollLeft + container.clientWidth / 2;
+      const centerY = container.scrollTop + container.clientHeight / 2;
+
+      // Calculate the board position at center
+      const boardCenterX = centerX / (currentZoom / 100);
+      const boardCenterY = centerY / (currentZoom / 100);
+
+      // Apply new zoom
+      setZoom(newZoom);
+
+      // Adjust scroll to keep the same board position at center
+      requestAnimationFrame(() => {
+        const newCenterX = boardCenterX * (newZoom / 100);
+        const newCenterY = boardCenterY * (newZoom / 100);
+        container.scrollLeft = newCenterX - container.clientWidth / 2;
+        container.scrollTop = newCenterY - container.clientHeight / 2;
+      });
+    } else {
+      setZoom(newZoom);
+    }
+
+    // ✅ 永続化処理
+    if (!boardId) return;
+
+    // ローカルキャッシュ即時更新
+    localStorage.setItem(`board-zoom-${boardId}`, newZoom.toString());
+
+    // DBはデバウンス保存（500ms）- 既存settingsとマージ
+    if (saveSettingsRef.current) clearTimeout(saveSettingsRef.current);
+    saveSettingsRef.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('boards')
+        .select('settings')
+        .eq('id', boardId)
+        .single();
+
+      await supabase
+        .from('boards')
+        .update({
+          settings: { ...data?.settings, zoom: newZoom },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', boardId);
+    }, 500);
+  }, [boardId, supabase, zoom]);
+
+  // ✅ ヒント表示状態のトグル（永続化付き）
+  const handleToggleHint = useCallback((show: boolean) => {
+    setShowHint(show);
+
+    if (!boardId) return;
+
+    // ローカルキャッシュ即時更新
+    localStorage.setItem(`board-showHint-${boardId}`, show.toString());
+
+    // DBはデバウンス保存（500ms）- 既存settingsとマージ
+    if (saveSettingsRef.current) clearTimeout(saveSettingsRef.current);
+    saveSettingsRef.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('boards')
+        .select('settings')
+        .eq('id', boardId)
+        .single();
+
+      await supabase
+        .from('boards')
+        .update({
+          settings: { ...data?.settings, showHint: show },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', boardId);
+    }, 500);
+  }, [boardId, supabase]);
+
+  // ✅ ズーム確定後にスクロール位置を設定（保存位置または中央揃え）
+  useEffect(() => {
+    if (containerRef.current && zoom !== null && settingsLoaded && !initialScrollDone.current) {
       const container = containerRef.current;
-      const scrollX = (BOARD_WIDTH - container.clientWidth) / 2;
-      const scrollY = (BOARD_HEIGHT - container.clientHeight) / 2;
-      container.scrollLeft = scrollX;
-      container.scrollTop = scrollY;
+
+      if (initialScroll) {
+        // 保存された位置を復元
+        container.scrollLeft = initialScroll.x;
+        container.scrollTop = initialScroll.y;
+      } else {
+        // 新規ボード: 中央揃え
+        const scaledWidth = BOARD_WIDTH * (zoom / 100);
+        const scaledHeight = BOARD_HEIGHT * (zoom / 100);
+        container.scrollLeft = Math.max(0, (scaledWidth - container.clientWidth) / 2);
+        container.scrollTop = Math.max(0, (scaledHeight - container.clientHeight) / 2);
+      }
       initialScrollDone.current = true;
     }
-  }, []);
+  }, [zoom, settingsLoaded, initialScroll]);
+
+  // ✅ ページ離脱時にスクロール位置を保存（LocalStorageのみ）
+  useEffect(() => {
+    const saveScrollPosition = () => {
+      if (!boardId || !containerRef.current) return;
+      const container = containerRef.current;
+      localStorage.setItem(`board-scroll-${boardId}`, JSON.stringify({
+        x: container.scrollLeft,
+        y: container.scrollTop
+      }));
+    };
+
+    window.addEventListener('beforeunload', saveScrollPosition);
+    return () => window.removeEventListener('beforeunload', saveScrollPosition);
+  }, [boardId]);
 
   // darkMode変更時のテキスト色自動変更は無効化
   // （Supabase永続化により、毎回DBへの更新が発生するため）
@@ -146,7 +346,8 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     if (!container) return;
 
     const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 1) {
+      // 中クリック、または全画面モード時は左クリックでもパン開始
+      if (e.button === 1 || (isFullscreenMode && e.button === 0)) {
         e.preventDefault();
         setIsPanning(true);
         panStart.current = {
@@ -169,11 +370,19 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     };
 
     const handleMouseUp = (e: MouseEvent) => {
-      if (e.button === 1 || isPanning) {
+      // 中クリック、または全画面モード時は左クリックでもパン終了
+      if (e.button === 1 || (isFullscreenMode && e.button === 0) || isPanning) {
         setIsPanning(false);
-        container.style.cursor = 'default';
+        container.style.cursor = isFullscreenMode ? 'grab' : 'default';
       }
     };
+
+    // 全画面モード時はカーソルをgrabに
+    if (isFullscreenMode) {
+      container.style.cursor = 'grab';
+    } else {
+      container.style.cursor = 'default';
+    }
 
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
@@ -184,7 +393,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isPanning]);
+  }, [isPanning, settingsLoaded, isFullscreenMode]);  // ✅ isFullscreenMode追加
 
   // ✅ 非同期でSupabaseに保存
   const addImageNode = async (src: string) => {
@@ -198,11 +407,12 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     const centerX = scrollLeft + containerWidth / 2;
     const centerY = scrollTop + containerHeight / 2;
 
+    const currentZoom = zoom ?? 70;
     const newNode = {
       type: NODE_TYPES.IMAGE as 'image',
       src,
-      x: (centerX - 125 + (Math.random() - 0.5) * 200) / (zoom / 100),
-      y: (centerY - 90 + (Math.random() - 0.5) * 200) / (zoom / 100),
+      x: (centerX - 125 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
+      y: (centerY - 90 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
       width: 250,
       height: 180,
       shape: IMAGE_SHAPES.FREE,
@@ -221,11 +431,12 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   };
 
   const addTextNode = async (x: number, y: number) => {
+    const currentZoom = zoom ?? 70;
     const newNode = {
       type: NODE_TYPES.TEXT as 'text',
       content: '',
-      x: x / (zoom / 100),
-      y: y / (zoom / 100),
+      x: x / (currentZoom / 100),
+      y: y / (currentZoom / 100),
       width: 200,
       height: 40,
       fontSize: 16,
@@ -330,33 +541,6 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     }
   };
 
-  const handleZoomChange = (newZoom: number) => {
-    const container = containerRef.current;
-    if (!container) {
-      setZoom(newZoom);
-      return;
-    }
-
-    // Calculate center point before zoom
-    const centerX = container.scrollLeft + container.clientWidth / 2;
-    const centerY = container.scrollTop + container.clientHeight / 2;
-    
-    // Calculate the board position at center
-    const boardCenterX = centerX / (zoom / 100);
-    const boardCenterY = centerY / (zoom / 100);
-    
-    // Apply new zoom
-    setZoom(newZoom);
-    
-    // Adjust scroll to keep the same board position at center
-    requestAnimationFrame(() => {
-      const newCenterX = boardCenterX * (newZoom / 100);
-      const newCenterY = boardCenterY * (newZoom / 100);
-      container.scrollLeft = newCenterX - container.clientWidth / 2;
-      container.scrollTop = newCenterY - container.clientHeight / 2;
-    });
-  };
-
   // 全画面モードでのスクリーンショットダウンロード
   const handleFullscreenDownload = async () => {
     const container = containerRef.current;
@@ -424,6 +608,18 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   const editingPage = editingPageId ? pages[editingPageId] : null;
   const editingNode = editingPageId ? nodes.find(n => n.id === editingPageId) : null;
 
+  // ✅ ズーム読み込み中はローディング表示
+  if (zoom === null) {
+    return (
+      <div className={`h-screen flex items-center justify-center ${darkMode ? 'bg-gray-950' : 'bg-gray-50'}`}>
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-800 animate-pulse"></div>
+          <div className="h-4 w-32 bg-gray-800 rounded mx-auto animate-pulse"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className={`h-screen flex flex-col transition-colors duration-300 ${
@@ -436,44 +632,18 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
       <div className={`flex-shrink-0 ${
         darkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'
       } border-b backdrop-blur-xl z-40`}>
-        <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className={`text-xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-                Vision Board
-              </span>
-            </h1>
-          </div>
+        <div className="max-w-screen-2xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-end relative">
+          {/* 中央揃えタイトル */}
+          <h1 className={`absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            <span className="sm:hidden bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+              VB
+            </span>
+            <span className="hidden sm:inline bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
+              Vision Board
+            </span>
+          </h1>
 
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <button
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  darkMode 
-                    ? 'bg-gray-800 hover:bg-gray-700 text-white' 
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                <ImagePlus size={16} />
-                サンプル画像
-              </button>
-              <div className={`absolute top-full right-0 mt-2 p-2 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all ${
-                darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-              }`}>
-                <div className="grid grid-cols-2 gap-2">
-                  {SAMPLE_IMAGES.map((src, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => addImageNode(src)}
-                      className="w-20 h-16 rounded-lg overflow-hidden hover:ring-2 hover:ring-violet-500 transition-all"
-                    >
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <input
               ref={fileInputRef}
               type="file"
@@ -483,17 +653,17 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
+              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
             >
               <Plus size={16} />
-              画像を追加
+              <span className="hidden sm:inline">画像を追加</span>
             </button>
 
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2.5 rounded-xl transition-all ${
-                darkMode 
-                  ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+              className={`p-2 sm:p-2.5 rounded-xl transition-all ${
+                darkMode
+                  ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
               }`}
             >
@@ -686,16 +856,19 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
         />
       )}
 
-      {/* ヒントUI - 全画面時は非表示 */}
-      {!isFullscreenMode && showHint && (
-        <div className={`fixed bottom-4 left-4 px-4 py-2 rounded-xl text-xs flex items-center gap-3 z-30 ${
+      {/* ヒントUI - 全画面時は非表示、小画面ではZoomControlの上に配置 */}
+      {!isFullscreenMode && showHint === true && (
+        <div className={`fixed bottom-16 sm:bottom-4 left-4 px-3 sm:px-4 py-2 rounded-xl text-xs flex items-center gap-2 sm:gap-3 z-30 ${
           darkMode ? 'bg-gray-800/90 text-gray-400' : 'bg-white/90 text-gray-500'
         } backdrop-blur-sm`}>
-          <div>
+          <div className="hidden sm:block">
             <span className="font-medium">ヒント:</span> ドラッグで移動 • ホイールドラッグでパン • ダブルクリックでテキスト追加
           </div>
+          <div className="sm:hidden text-[10px]">
+            ドラッグで移動 • ダブルクリックでテキスト
+          </div>
           <button
-            onClick={() => setShowHint(false)}
+            onClick={() => handleToggleHint(false)}
             className={`p-1 rounded-lg transition-colors ${
               darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
             }`}
@@ -705,10 +878,10 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
         </div>
       )}
 
-      {!isFullscreenMode && !showHint && (
+      {!isFullscreenMode && showHint === false && (
         <button
-          onClick={() => setShowHint(true)}
-          className={`fixed bottom-4 left-4 p-2 rounded-xl z-30 ${
+          onClick={() => handleToggleHint(true)}
+          className={`fixed bottom-16 sm:bottom-4 left-4 p-2 rounded-xl z-30 ${
             darkMode ? 'bg-gray-800/90 text-gray-400 hover:bg-gray-700' : 'bg-white/90 text-gray-500 hover:bg-gray-200'
           } backdrop-blur-sm transition-colors`}
         >

@@ -142,20 +142,20 @@ export default function BoardsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <nav className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-14 sm:h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                 Vision Board
               </h1>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="hidden sm:inline text-sm text-gray-700 dark:text-gray-300">
                 {user.email}
               </span>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 ログアウト
               </button>
@@ -194,7 +194,7 @@ export default function BoardsPage() {
             </div>
           ) : (
             <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {boards.map((board) => (
                 <div
                   key={board.id}

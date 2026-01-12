@@ -82,12 +82,12 @@ export default function BoardPage({ params }: BoardPageProps) {
       <div className="h-screen flex flex-col bg-gray-950">
         {/* ヘッダースケルトン */}
         <div className="flex-shrink-0 bg-gray-900/90 border-b border-gray-800 backdrop-blur-xl">
-          <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
-            <div className="h-6 w-32 bg-gray-800 rounded animate-pulse"></div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-32 bg-gray-800 rounded-xl animate-pulse"></div>
-              <div className="h-10 w-32 bg-gray-800 rounded-xl animate-pulse"></div>
-              <div className="h-10 w-10 bg-gray-800 rounded-xl animate-pulse"></div>
+          <div className="max-w-screen-2xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between">
+            <div className="h-6 w-20 sm:w-32 bg-gray-800 rounded animate-pulse"></div>
+            <div className="flex items-center gap-1.5 sm:gap-3">
+              <div className="h-8 sm:h-10 w-10 sm:w-32 bg-gray-800 rounded-xl animate-pulse"></div>
+              <div className="h-8 sm:h-10 w-10 sm:w-32 bg-gray-800 rounded-xl animate-pulse"></div>
+              <div className="h-8 sm:h-10 w-8 sm:w-10 bg-gray-800 rounded-xl animate-pulse"></div>
             </div>
           </div>
         </div>
@@ -137,13 +137,14 @@ export default function BoardPage({ params }: BoardPageProps) {
     <div className="relative h-screen">
       {/* 戻るボタン - 全画面時は非表示 */}
       {!isFullscreenMode && (
-        <div className="absolute top-4 left-4 z-50">
+        <div className="absolute top-3 sm:top-4 left-3 sm:left-4 z-50">
           <button
             onClick={() => router.push('/boards')}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg backdrop-blur-sm transition-all"
+            className="flex items-center gap-1 sm:gap-2 p-2 sm:px-3 sm:py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg backdrop-blur-sm transition-all"
+            title="ボード一覧"
           >
             <ChevronLeft className="w-4 h-4" />
-            ボード一覧
+            <span className="hidden sm:inline">ボード一覧</span>
           </button>
         </div>
       )}
