@@ -3,10 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
 
 export default function LoginPage() {
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations('auth.login')
+  const tCommon = useTranslations('common')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -55,19 +60,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 relative">
+      {/* Language Selector */}
+      <div className="absolute top-4 right-4">
+        <LanguageSelector currentLocale={locale} />
+      </div>
+
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Vision Board にログイン
+            {t('title')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            または{' '}
+            {tCommon('or')}{' '}
             <Link
               href="/signup"
               className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
             >
-              新規アカウント作成
+              {t('createAccount')}
             </Link>
           </p>
         </div>
@@ -82,7 +92,7 @@ export default function LoginPage() {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
-                メールアドレス
+                {t('email')}
               </label>
               <input
                 id="email"
@@ -93,12 +103,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="メールアドレス"
+                placeholder={t('email')}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                パスワード
+                {t('password')}
               </label>
               <input
                 id="password"
@@ -109,7 +119,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="パスワード"
+                placeholder={t('password')}
               />
             </div>
           </div>
@@ -120,7 +130,7 @@ export default function LoginPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'ログイン中...' : 'ログイン'}
+              {loading ? t('submitting') : t('submit')}
             </button>
           </div>
 
@@ -130,7 +140,7 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
-                または
+                {tCommon('or')}
               </span>
             </div>
           </div>
@@ -160,7 +170,7 @@ export default function LoginPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Googleでログイン
+              {t('withGoogle')}
             </button>
           </div>
         </form>

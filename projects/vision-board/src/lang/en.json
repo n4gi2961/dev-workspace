@@ -1,0 +1,229 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "or": "or",
+    "untitled": "Untitled",
+    "today": "Today",
+    "completed": "Completed"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to Asterize",
+      "createAccount": "Create new account",
+      "email": "Email",
+      "password": "Password",
+      "submitting": "Signing in...",
+      "submit": "Sign In",
+      "withGoogle": "Sign in with Google"
+    },
+    "signup": {
+      "title": "Create Asterize Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign In",
+      "displayName": "Display Name",
+      "email": "Email",
+      "password": "Password",
+      "passwordPlaceholder": "Password (8+ characters)",
+      "passwordConfirm": "Confirm Password",
+      "submitting": "Creating account...",
+      "submit": "Create Account",
+      "withGoogle": "Sign up with Google",
+      "errors": {
+        "passwordMismatch": "Passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "emailExists": "This email is already registered"
+      }
+    },
+    "logout": "Sign Out"
+  },
+  "boards": {
+    "title": "Asterize",
+    "listTitle": "My Boards",
+    "newBoard": "New Board",
+    "empty": "No boards yet",
+    "createFirst": "Create your first board",
+    "editName": "Edit board name",
+    "deleteBoard": "Delete this board",
+    "lastUpdated": "Last updated:",
+    "deleteModal": {
+      "title": "Delete Board",
+      "message": "Are you sure? This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "notFound": {
+      "title": "Board Not Found",
+      "message": "The board does not exist or you don't have access.",
+      "backToList": "Back to boards"
+    }
+  },
+  "board": {
+    "titleShort": "VB",
+    "titleFull": "Asterize",
+    "addImage": "Add Image",
+    "newBoardDefault": "New Board",
+    "loadingMessage": "Now Loading...",
+    "loadingQuote": "Place your star. The path follows.",
+    "loadingDescription": "Every glance brings you one step closer.",
+    "addFirstImage": "Add your first image",
+    "uploadFailed": "Failed to upload image",
+    "zoom": {
+      "in": "Zoom In",
+      "out": "Zoom Out"
+    },
+    "screenshot": "Screenshot",
+    "exitFullscreen": "Exit Fullscreen",
+    "slideshow": "Slideshow",
+    "fullscreen": "Fullscreen",
+    "backToList": "Back to boards",
+    "focusMode": "Focus Mode",
+    "fullscreenMode": "Fullscreen Mode"
+  },
+  "node": {
+    "image": {
+      "holdToPlace": "Hold to place"
+    },
+    "text": {
+      "placeholder": "Enter text...",
+      "editHint": "Double-click to edit"
+    }
+  },
+  "pageEditor": {
+    "titlePlaceholder": "Goal title",
+    "tabs": {
+      "overview": "Overview",
+      "milestones": "Milestones",
+      "routines": "Routines",
+      "data": "Data"
+    },
+    "category": {
+      "unset": "No category",
+      "place": "Places to visit",
+      "state": "States to achieve",
+      "experience": "Experiences to have"
+    },
+    "targetYear": {
+      "unset": "Target year not set",
+      "2020s": "2020s",
+      "2030s": "2030s",
+      "2040s": "2040s",
+      "2050s": "2050s",
+      "2060s": "2060s and beyond"
+    },
+    "overview": {
+      "title": "Overview & Notes",
+      "placeholder": "Write freely about this goal..."
+    },
+    "milestones": {
+      "progress": "Milestone Progress",
+      "description": "Manage steps toward your goal. Drag to reorder.",
+      "addPlaceholder": "Add new milestone..."
+    },
+    "routines": {
+      "todayTitle": "Today's Routines",
+      "streakLabel": "Consistency (30 days)",
+      "description": "Manage daily habits. Click color to change, drag to reorder.",
+      "thisWeek": "This Week",
+      "addPlaceholder": "Add new routine..."
+    }
+  },
+  "hoverPreview": {
+    "todayRoutines": "Today's Tasks",
+    "milestones": "Path to Achievement",
+    "editHint": "Double-click to edit"
+  },
+  "calendar": {
+    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "weekdays": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "yearSuffix": "",
+    "progress": "Progress",
+    "milestoneAchieved": "Milestone achieved"
+  },
+  "routineTable": {
+    "task": "Task"
+  },
+  "export": {
+    "title": "Export as Wallpaper",
+    "selectResolution": "Select Resolution",
+    "resolutions": {
+      "desktop1080": "Desktop (1920×1080)",
+      "desktop1440": "Desktop QHD (2560×1440)",
+      "desktop4k": "Desktop 4K (3840×2160)",
+      "iphone": "iPhone (1170×2532)",
+      "iphoneMax": "iPhone Pro Max (1284×2778)",
+      "ipad": "iPad (2048×2732)"
+    },
+    "exporting": "Exporting...",
+    "download": "Download",
+    "instruction": "After downloading, set as wallpaper in device settings"
+  },
+  "fontSelector": {
+    "title": "Change font size & color",
+    "fontSize": "Font Size",
+    "fontColor": "Font Color"
+  },
+  "shapeSelector": {
+    "title": "Change shape",
+    "free": "Free",
+    "original": "Original",
+    "square": "Square",
+    "landscape": "Landscape 16:9",
+    "portrait": "Portrait 3:4"
+  },
+  "textToolbar": {
+    "font": "Font"
+  },
+  "blockMenu": {
+    "text": "Text",
+    "heading": "Heading",
+    "toggle": "Toggle",
+    "check": "Checkbox",
+    "addBlock": "Add Block"
+  },
+  "block": {
+    "headingPlaceholder": "Heading",
+    "textPlaceholder": "Enter text"
+  },
+  "ambientMode": {
+    "addImages": "Please add images",
+    "closeHint": "Press ESC or click to close"
+  },
+  "hints": {
+    "desktop": "Drag to move images • Wheel drag to pan • Double-click to add text",
+    "mobile": "Swipe to move • Double-tap to add text",
+    "prefix": "Hint:"
+  },
+  "messages": {
+    "milestone": {
+      "0": "Take the first step",
+      "25": "Steady progress",
+      "50": "Going well",
+      "75": "The goal is in sight",
+      "99": "Almost there!",
+      "100": "Goal achieved! Congrats"
+    },
+    "today": {
+      "0": "Let's do our best today",
+      "50": "Going great!",
+      "99": "Almost perfect",
+      "100": "Perfect day!"
+    },
+    "streak": {
+      "0": "Every journey begins with a single step",
+      "10": "Consistency is key",
+      "30": "Habits are forming",
+      "50": "Great rhythm",
+      "70": "Amazing consistency",
+      "90": "Path to mastery",
+      "100": "Unstoppable!"
+    }
+  },
+  "metadata": {
+    "title": "Asterize",
+    "description": "Visualize your dreams and goals to make them reality"
+  }
+}

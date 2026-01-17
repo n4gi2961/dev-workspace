@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { BLOCK_TYPES, NODE_TYPES, IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
 import { HOVER_FONT_CONFIG, ROUTINE_COLORS, FONT_OPTIONS, SIZE_OPTIONS, COLOR_OPTIONS_DARK, COLOR_OPTIONS_LIGHT } from '@/constants/styles';
@@ -49,6 +50,8 @@ interface VisionBoardProps {
 
 // Main Vision Board Component
 export default function VisionBoard({ boardId, userId, onFullscreenChange }: VisionBoardProps) {
+  const t = useTranslations('board');
+  const tHints = useTranslations('hints');
   const [darkMode, setDarkMode] = useState(true);
   // ✅ Supabaseクライアント（useMemoでキャッシュ）
   const supabase = useMemo(() => createClient(), []);
@@ -461,7 +464,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
       addImageNode(imageUrl);
     } catch (err) {
       console.error('Image upload failed:', err);
-      alert('画像のアップロードに失敗しました');
+      alert(t('uploadFailed'));
     }
   };
 
@@ -636,10 +639,10 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           {/* 中央揃えタイトル */}
           <h1 className={`absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             <span className="sm:hidden bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-              VB
+              {t('titleShort')}
             </span>
             <span className="hidden sm:inline bg-gradient-to-r from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">
-              Vision Board
+              {t('titleFull')}
             </span>
           </h1>
 
@@ -656,7 +659,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
               className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
             >
               <Plus size={16} />
-              <span className="hidden sm:inline">画像を追加</span>
+              <span className="hidden sm:inline">{t('addImage')}</span>
             </button>
 
             <button
@@ -746,7 +749,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           <div className="fixed inset-0 flex items-center justify-center pointer-events-none" style={{ top: '64px' }}>
             <div className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
-              <p className="text-lg font-medium">Now Loading...</p>
+              <p className="text-lg font-medium">{t('loadingMessage')}</p>
             </div>
           </div>
         ) : nodes.length === 0 && (
@@ -758,16 +761,16 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
                 <ImagePlus size={40} className={darkMode ? 'text-gray-600' : 'text-gray-400'} />
               </div>
               <p className="text-2xl font-bold mb-3 bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                夢を可視化すると、脳はそれを現実として認識し始める
+                {t('loadingQuote')}
               </p>
               <p className="text-sm mb-6 max-w-lg mx-auto px-4">
-                あなたの夢と目標を画像で表現し、毎日眺めることで潜在意識に働きかける
+                {t('loadingDescription')}
               </p>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="mt-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
               >
-                最初の画像を追加
+                {t('addFirstImage')}
               </button>
             </div>
           </div>
@@ -801,7 +804,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           <button
             onClick={() => handleZoomChange(Math.max(25, zoom - 25))}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title="ズームアウト"
+            title={t('zoom.out')}
           >
             <ZoomOut size={16} className="text-white" />
           </button>
@@ -816,7 +819,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           <button
             onClick={() => handleZoomChange(Math.min(200, zoom + 25))}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title="ズームイン"
+            title={t('zoom.in')}
           >
             <ZoomIn size={16} className="text-white" />
           </button>
@@ -826,14 +829,14 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           <button
             onClick={handleFullscreenDownload}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title="スクリーンショット"
+            title={t('screenshot')}
           >
             <Download size={16} className="text-white" />
           </button>
           <button
             onClick={exitFullscreen}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title="全画面終了"
+            title={t('exitFullscreen')}
           >
             <Minimize size={16} className="text-white" />
           </button>
@@ -862,10 +865,10 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           darkMode ? 'bg-gray-800/90 text-gray-400' : 'bg-white/90 text-gray-500'
         } backdrop-blur-sm`}>
           <div className="hidden sm:block">
-            <span className="font-medium">ヒント:</span> ドラッグで移動 • ホイールドラッグでパン • ダブルクリックでテキスト追加
+            <span className="font-medium">{tHints('prefix')}</span> {tHints('desktop')}
           </div>
           <div className="sm:hidden text-[10px]">
-            ドラッグで移動 • ダブルクリックでテキスト
+            {tHints('mobile')}
           </div>
           <button
             onClick={() => handleToggleHint(false)}

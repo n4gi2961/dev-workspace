@@ -1,4 +1,34 @@
-// Encouragement messages based on percentage
+// Returns translation key based on percentage
+// Usage: const t = useTranslations('messages'); t(getMessageKey(percentage, 'milestone'))
+export const getMessageKey = (percentage: number, type: string): string => {
+  if (type === 'milestone') {
+    if (percentage === 0) return 'milestone.0';
+    if (percentage < 25) return 'milestone.25';
+    if (percentage < 50) return 'milestone.50';
+    if (percentage < 75) return 'milestone.75';
+    if (percentage < 100) return 'milestone.99';
+    return 'milestone.100';
+  }
+  if (type === 'today') {
+    if (percentage === 0) return 'today.0';
+    if (percentage < 50) return 'today.50';
+    if (percentage < 100) return 'today.99';
+    return 'today.100';
+  }
+  if (type === 'streak') {
+    if (percentage === 0) return 'streak.0';
+    if (percentage < 10) return 'streak.10';
+    if (percentage < 30) return 'streak.30';
+    if (percentage < 50) return 'streak.50';
+    if (percentage < 70) return 'streak.70';
+    if (percentage < 90) return 'streak.90';
+    return 'streak.100';
+  }
+  return 'milestone.0';
+};
+
+// Legacy function for backwards compatibility
+// @deprecated Use getMessageKey with useTranslations instead
 export const getEncouragementMessage = (percentage: number, type: string) => {
   if (type === 'milestone') {
     if (percentage === 0) return 'はじめの一歩を踏み出そう';

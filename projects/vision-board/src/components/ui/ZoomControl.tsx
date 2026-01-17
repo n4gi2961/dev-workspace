@@ -1,4 +1,7 @@
+'use client';
+
 import { Images, Maximize, ZoomOut, ZoomIn } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ZoomControlProps {
   zoom: number;
@@ -9,7 +12,8 @@ interface ZoomControlProps {
 }
 
 export const ZoomControl = ({ zoom, onZoomChange, onSlideshow, onEnterFullscreen, darkMode }: ZoomControlProps) => {
-  const minZoom = 25;
+  const t = useTranslations('board');
+  const minZoom = 50;
   const maxZoom = 200;
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,7 +26,7 @@ export const ZoomControl = ({ zoom, onZoomChange, onSlideshow, onEnterFullscreen
     } backdrop-blur-sm shadow-lg`}>
       {/* ズーム機能 */}
       <button
-        onClick={() => onZoomChange(Math.max(minZoom, zoom - 25))}
+        onClick={() => onZoomChange(Math.max(minZoom, zoom - 10))}
         className={`p-1 rounded transition-colors ${
           darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
         }`}
@@ -41,7 +45,7 @@ export const ZoomControl = ({ zoom, onZoomChange, onSlideshow, onEnterFullscreen
       />
 
       <button
-        onClick={() => onZoomChange(Math.min(maxZoom, zoom + 25))}
+        onClick={() => onZoomChange(Math.min(maxZoom, zoom + 10))}
         className={`p-1 rounded transition-colors ${
           darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
         }`}
@@ -59,7 +63,7 @@ export const ZoomControl = ({ zoom, onZoomChange, onSlideshow, onEnterFullscreen
         className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
           darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
         }`}
-        title="スライドショー"
+        title={t('focusMode')}
       >
         <Images size={16} />
       </button>
@@ -69,7 +73,7 @@ export const ZoomControl = ({ zoom, onZoomChange, onSlideshow, onEnterFullscreen
         className={`p-1 sm:p-1.5 rounded-lg transition-colors ${
           darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
         }`}
-        title="全画面表示"
+        title={t('fullscreenMode')}
       >
         <Maximize size={16} />
       </button>

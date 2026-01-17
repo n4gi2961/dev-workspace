@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { FONT_OPTIONS, SIZE_OPTIONS, COLOR_OPTIONS_DARK, COLOR_OPTIONS_LIGHT } from '@/constants/styles';
 
 interface TextToolbarProps {
@@ -9,6 +12,7 @@ interface TextToolbarProps {
 }
 
 export const TextToolbar = ({ node, onUpdate, darkMode }: TextToolbarProps) => {
+  const t = useTranslations('textToolbar');
   const [showFonts, setShowFonts] = useState(false);
   const [showSizes, setShowSizes] = useState(false);
   const [showColors, setShowColors] = useState(false);
@@ -29,7 +33,7 @@ export const TextToolbar = ({ node, onUpdate, darkMode }: TextToolbarProps) => {
             darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
           }`}
         >
-          フォント
+          {t('font')}
         </button>
         {showFonts && (
           <div className={`absolute top-full left-0 mt-1 p-1 rounded-lg shadow-xl ${

@@ -1,4 +1,7 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { TextToolbar } from '@/components/ui/TextToolbar';
 
@@ -13,6 +16,7 @@ interface DraggableTextNodeProps {
 }
 
 export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelected, onSelect, isFullscreenMode = false }: DraggableTextNodeProps) => {
+  const t = useTranslations('node.text');
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [isEditing, setIsEditing] = useState(node.isNew || false);
@@ -196,7 +200,7 @@ export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelect
             fontSize: `${node.fontSize || 16}px`,
             color: node.color || (darkMode ? '#ffffff' : '#000000'),
           }}
-          placeholder="テキストを入力..."
+          placeholder={t('placeholder')}
         />
       ) : (
         <div
@@ -208,7 +212,7 @@ export const DraggableTextNode = ({ node, onUpdate, onDelete, darkMode, isSelect
           }}
         >
           {node.content || (
-            <span className="opacity-50">ダブルクリックで編集</span>
+            <span className="opacity-50">{t('editHint')}</span>
           )}
         </div>
       )}

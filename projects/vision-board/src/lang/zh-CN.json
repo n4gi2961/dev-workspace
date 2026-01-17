@@ -1,0 +1,229 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "loading": "加载中...",
+    "or": "或",
+    "untitled": "无标题",
+    "today": "今天",
+    "completed": "已完成"
+  },
+  "auth": {
+    "login": {
+      "title": "登录 Asterize",
+      "createAccount": "创建新账户",
+      "email": "邮箱",
+      "password": "密码",
+      "submitting": "登录中...",
+      "submit": "登录",
+      "withGoogle": "使用Google登录"
+    },
+    "signup": {
+      "title": "创建 Asterize 账户",
+      "hasAccount": "已有账户？",
+      "login": "登录",
+      "displayName": "显示名称",
+      "email": "邮箱",
+      "password": "密码",
+      "passwordPlaceholder": "密码（8位以上）",
+      "passwordConfirm": "确认密码",
+      "submitting": "注册中...",
+      "submit": "创建账户",
+      "withGoogle": "使用Google注册",
+      "errors": {
+        "passwordMismatch": "密码不匹配",
+        "passwordTooShort": "密码至少需要8个字符",
+        "emailExists": "该邮箱已被注册"
+      }
+    },
+    "logout": "退出登录"
+  },
+  "boards": {
+    "title": "Asterize",
+    "listTitle": "我的看板",
+    "newBoard": "新建看板",
+    "empty": "还没有看板",
+    "createFirst": "创建第一个看板",
+    "editName": "编辑看板名称",
+    "deleteBoard": "删除此看板",
+    "lastUpdated": "最后更新：",
+    "deleteModal": {
+      "title": "删除看板",
+      "message": "确定要删除吗？此操作无法撤销。",
+      "confirm": "删除"
+    },
+    "notFound": {
+      "title": "未找到看板",
+      "message": "看板不存在或您没有访问权限",
+      "backToList": "返回看板列表"
+    }
+  },
+  "board": {
+    "titleShort": "VB",
+    "titleFull": "Asterize",
+    "addImage": "添加图片",
+    "newBoardDefault": "新看板",
+    "loadingMessage": "加载中...",
+    "loadingQuote": "展示你的理想，每天面对它。",
+    "loadingDescription": "行动改变，未来改变。",
+    "addFirstImage": "添加第一张图片",
+    "uploadFailed": "图片上传失败",
+    "zoom": {
+      "in": "放大",
+      "out": "缩小"
+    },
+    "screenshot": "截图",
+    "exitFullscreen": "退出全屏",
+    "slideshow": "幻灯片",
+    "fullscreen": "全屏",
+    "backToList": "返回看板列表",
+    "focusMode": "专注模式",
+    "fullscreenMode": "全屏模式"
+  },
+  "node": {
+    "image": {
+      "holdToPlace": "长按放置"
+    },
+    "text": {
+      "placeholder": "输入文字...",
+      "editHint": "双击编辑"
+    }
+  },
+  "pageEditor": {
+    "titlePlaceholder": "目标标题",
+    "tabs": {
+      "overview": "概述",
+      "milestones": "里程碑",
+      "routines": "日常习惯",
+      "data": "数据"
+    },
+    "category": {
+      "unset": "未设置分类",
+      "place": "想去的地方",
+      "state": "想达到的状态",
+      "experience": "想体验的事情"
+    },
+    "targetYear": {
+      "unset": "未设置目标年份",
+      "2020s": "2020年代",
+      "2030s": "2030年代",
+      "2040s": "2040年代",
+      "2050s": "2050年代",
+      "2060s": "2060年代及以后"
+    },
+    "overview": {
+      "title": "概述与备注",
+      "placeholder": "自由描述这个目标..."
+    },
+    "milestones": {
+      "progress": "里程碑进度",
+      "description": "管理实现目标的步骤。拖拽可排序。",
+      "addPlaceholder": "添加新里程碑..."
+    },
+    "routines": {
+      "todayTitle": "今日习惯",
+      "streakLabel": "坚持率（30天）",
+      "description": "管理日常习惯。点击颜色可更改，拖拽可排序。",
+      "thisWeek": "本周",
+      "addPlaceholder": "添加新习惯..."
+    }
+  },
+  "hoverPreview": {
+    "todayRoutines": "今日待办",
+    "milestones": "成长之路",
+    "editHint": "双击编辑"
+  },
+  "calendar": {
+    "months": ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+    "weekdays": ["日", "一", "二", "三", "四", "五", "六"],
+    "yearSuffix": "年",
+    "progress": "进度",
+    "milestoneAchieved": "里程碑达成日"
+  },
+  "routineTable": {
+    "task": "任务"
+  },
+  "export": {
+    "title": "导出为壁纸",
+    "selectResolution": "选择分辨率",
+    "resolutions": {
+      "desktop1080": "桌面 (1920×1080)",
+      "desktop1440": "桌面 QHD (2560×1440)",
+      "desktop4k": "桌面 4K (3840×2160)",
+      "iphone": "iPhone (1170×2532)",
+      "iphoneMax": "iPhone Pro Max (1284×2778)",
+      "ipad": "iPad (2048×2732)"
+    },
+    "exporting": "导出中...",
+    "download": "下载",
+    "instruction": "下载后，请在设备设置中设置为壁纸"
+  },
+  "fontSelector": {
+    "title": "更改字体大小和颜色",
+    "fontSize": "字体大小",
+    "fontColor": "字体颜色"
+  },
+  "shapeSelector": {
+    "title": "更改形状",
+    "free": "自由",
+    "original": "原始",
+    "square": "正方形",
+    "landscape": "横向 16:9",
+    "portrait": "纵向 3:4"
+  },
+  "textToolbar": {
+    "font": "字体"
+  },
+  "blockMenu": {
+    "text": "文本",
+    "heading": "标题",
+    "toggle": "折叠",
+    "check": "复选框",
+    "addBlock": "添加模块"
+  },
+  "block": {
+    "headingPlaceholder": "标题",
+    "textPlaceholder": "输入文字"
+  },
+  "ambientMode": {
+    "addImages": "请添加图片",
+    "closeHint": "按ESC或点击关闭"
+  },
+  "hints": {
+    "desktop": "拖拽移动图片 • 滚轮拖拽平移 • 双击添加文字",
+    "mobile": "滑动移动 • 双击添加文字",
+    "prefix": "提示："
+  },
+  "messages": {
+    "milestone": {
+      "0": "迈出第一步",
+      "25": "稳步前进",
+      "50": "进展顺利",
+      "75": "目标在望",
+      "99": "就差一点！",
+      "100": "目标达成！恭喜"
+    },
+    "today": {
+      "0": "今天也要加油",
+      "50": "状态不错！",
+      "99": "马上就完美了",
+      "100": "完美的一天！"
+    },
+    "streak": {
+      "0": "千里之行始于足下",
+      "10": "坚持就是胜利",
+      "30": "习惯正在养成",
+      "50": "节奏越来越好",
+      "70": "了不起的坚持",
+      "90": "习惯大师之路",
+      "100": "无与伦比！"
+    }
+  },
+  "metadata": {
+    "title": "Asterize",
+    "description": "可视化梦想与目标，让它们成为现实"
+  }
+}

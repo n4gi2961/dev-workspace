@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { BLOCK_TYPES } from '@/constants/types';
 import { generateId } from '@/lib/utils';
 import { BlockAddMenu } from '@/components/ui/BlockAddMenu';
@@ -17,6 +20,8 @@ interface BlockProps {
 }
 
 export const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, darkMode, depth = 0, focusId, setFocusId }: BlockProps) => {
+  const t = useTranslations('block');
+  const tBlockMenu = useTranslations('blockMenu');
   const [isOpen, setIsOpen] = useState(block.isOpen ?? true);
   const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +165,7 @@ export const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, d
             value={block.content}
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
-            placeholder="見出し"
+            placeholder={t('headingPlaceholder')}
             className={`${baseInputStyle} text-xl font-bold`}
           />
           <button
@@ -188,7 +193,7 @@ export const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, d
             value={block.content}
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
-            placeholder="テキストを入力"
+            placeholder={t('textPlaceholder')}
             className={`${baseInputStyle} text-base leading-relaxed overflow-hidden`}
             style={{ minHeight: '32px', resize: 'none' }}
           />
@@ -226,7 +231,7 @@ export const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, d
               value={block.content}
               onChange={handleContentChange}
               onKeyDown={handleKeyDown}
-              placeholder="テキストを入力"
+              placeholder={t('textPlaceholder')}
               className={`${baseInputStyle} font-medium`}
             />
             <button
@@ -271,7 +276,7 @@ export const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, d
                   darkMode ? 'text-gray-500 hover:text-gray-300 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <Plus size={12} /> ブロックを追加
+                <Plus size={12} /> {tBlockMenu('addBlock')}
               </button>
             </div>
           )}
@@ -305,7 +310,7 @@ export const Block = ({ block, onChange, onDelete, onAddAfter, onAddBlockType, d
             value={block.content}
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
-            placeholder="テキストを入力"
+            placeholder={t('textPlaceholder')}
             className={`${baseInputStyle} ${block.checked ? 'line-through opacity-60' : ''}`}
           />
           <button

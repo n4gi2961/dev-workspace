@@ -3,10 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
 
 export default function SignupPage() {
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations('auth.signup')
+  const tCommon = useTranslations('common')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -21,13 +26,13 @@ export default function SignupPage() {
 
     // パスワード確認
     if (password !== confirmPassword) {
-      setError('パスワードが一致しません')
+      setError(t('errors.passwordMismatch'))
       return
     }
 
     // パスワードの強度チェック
     if (password.length < 8) {
-      setError('パスワードは8文字以上である必要があります')
+      setError(t('errors.passwordTooShort'))
       return
     }
 
@@ -58,7 +63,7 @@ export default function SignupPage() {
 
         // メール確認が必要な場合
         if (data.user.identities?.length === 0) {
-          setError('このメールアドレスは既に登録されています')
+          setError(t('errors.emailExists'))
           return
         }
 
@@ -66,7 +71,7 @@ export default function SignupPage() {
         router.refresh()
       }
     } catch (error: any) {
-      setError(error.message || '登録に失敗しました')
+      setError(error.message)
     } finally {
       setLoading(false)
     }
@@ -86,25 +91,30 @@ export default function SignupPage() {
 
       if (error) throw error
     } catch (error: any) {
-      setError(error.message || 'Google登録に失敗しました')
+      setError(error.message)
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 relative">
+      {/* Language Selector */}
+      <div className="absolute top-4 right-4">
+        <LanguageSelector currentLocale={locale} />
+      </div>
+
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Vision Board アカウント作成
+            {t('title')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            すでにアカウントをお持ちですか？{' '}
+            {t('hasAccount')}{' '}
             <Link
               href="/login"
               className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
             >
-              ログイン
+              {t('login')}
             </Link>
           </p>
         </div>
@@ -119,7 +129,7 @@ export default function SignupPage() {
           <div className="rounded-md shadow-sm space-y-3">
             <div>
               <label htmlFor="displayName" className="sr-only">
-                表示名
+                {t('displayName')}
               </label>
               <input
                 id="displayName"
@@ -129,12 +139,12 @@ export default function SignupPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="表示名"
+                placeholder={t('displayName')}
               />
             </div>
             <div>
               <label htmlFor="email" className="sr-only">
-                メールアドレス
+                {t('email')}
               </label>
               <input
                 id="email"
@@ -145,12 +155,12 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="メールアドレス"
+                placeholder={t('email')}
               />
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                パスワード
+                {t('password')}
               </label>
               <input
                 id="password"
@@ -161,12 +171,12 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="パスワード（8文字以上）"
+                placeholder={t('passwordPlaceholder')}
               />
             </div>
             <div>
               <label htmlFor="confirmPassword" className="sr-only">
-                パスワード（確認）
+                {t('passwordConfirm')}
               </label>
               <input
                 id="confirmPassword"
@@ -177,7 +187,7 @@ export default function SignupPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="パスワード（確認）"
+                placeholder={t('passwordConfirm')}
               />
             </div>
           </div>
@@ -188,7 +198,7 @@ export default function SignupPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? '登録中...' : 'アカウント作成'}
+              {loading ? t('submitting') : t('submit')}
             </button>
           </div>
 
@@ -198,7 +208,7 @@ export default function SignupPage() {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
-                または
+                {tCommon('or')}
               </span>
             </div>
           </div>
@@ -228,7 +238,7 @@ export default function SignupPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Googleで登録
+              {t('withGoogle')}
             </button>
           </div>
         </form>

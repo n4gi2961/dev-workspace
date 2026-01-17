@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getTodayString, getMonthDates } from '@/lib/utils';
 
 interface DataCalendarProps {
@@ -17,6 +20,8 @@ const formatLocalDate = (date: Date): string => {
 };
 
 export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarProps) => {
+  const t = useTranslations('calendar');
+  const tCommon = useTranslations('common');
   const [currentDate, setCurrentDate] = useState(new Date());
   const todayString = getTodayString();
 
@@ -24,7 +29,10 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
   const month = currentDate.getMonth();
   const monthDates = getMonthDates(year, month);
 
-  const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+  const monthNames = t.raw('months') as string[];
+  const weekdays = t.raw('weekdays') as string[];
+  // 日曜始まり→月曜始まりに変換
+  const weekdaysFromMonday = [...weekdays.slice(1), weekdays[0]];
 
   // Get milestone completion dates with their titles
   const milestoneByDate = new Map<string, string>(
@@ -59,7 +67,7 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
         </button>
         <div className="flex items-center gap-3">
           <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            {year}年 {monthNames[month]}
+            {year}{t('yearSuffix')} {monthNames[month]}
           </span>
           <button
             onClick={goToToday}
@@ -67,7 +75,7 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
               darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
             }`}
           >
-            今日
+            {tCommon('today')}
           </button>
         </div>
         <button
@@ -82,9 +90,9 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
 
       {/* Day labels */}
       <div className="grid grid-cols-7 gap-1 mb-2">
-        {['月', '火', '水', '木', '金', '土', '日'].map(day => (
+        {weekdaysFromMonday.map((day, idx) => (
           <div
-            key={day}
+            key={idx}
             className={`text-center text-xs font-medium py-1 ${
               darkMode ? 'text-gray-500' : 'text-gray-400'
             }`}
@@ -171,7 +179,7 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
       {/* Legend */}
       <div className={`mt-4 pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
         <div className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          進捗
+          {t('progress')}
         </div>
         <div className="flex flex-wrap gap-3">
           {routines.map(r => (
@@ -188,7 +196,7 @@ export const DataCalendar = ({ routines, milestones, darkMode }: DataCalendarPro
           <div className="flex items-center gap-1.5">
             <span className="text-sm text-yellow-400">★</span>
             <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              マイルストーン達成日
+              {t('milestoneAchieved')}
             </span>
           </div>
         </div>

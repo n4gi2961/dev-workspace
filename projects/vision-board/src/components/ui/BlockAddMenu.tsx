@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { Plus, Type, ChevronRight, CheckSquare } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { BLOCK_TYPES } from '@/constants/types';
 
 interface BlockAddMenuProps {
@@ -8,6 +11,7 @@ interface BlockAddMenuProps {
 }
 
 export const BlockAddMenu = ({ onAdd, darkMode }: BlockAddMenuProps) => {
+  const t = useTranslations('blockMenu');
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -34,7 +38,7 @@ export const BlockAddMenu = ({ onAdd, darkMode }: BlockAddMenuProps) => {
                 darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <Type size={12} /> テキスト
+              <Type size={12} /> {t('text')}
             </button>
             <button
               onClick={() => { onAdd(BLOCK_TYPES.HEADING); setIsOpen(false); }}
@@ -42,7 +46,7 @@ export const BlockAddMenu = ({ onAdd, darkMode }: BlockAddMenuProps) => {
                 darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <Type size={12} /> 見出し
+              <Type size={12} /> {t('heading')}
             </button>
             <button
               onClick={() => { onAdd(BLOCK_TYPES.TOGGLE); setIsOpen(false); }}
@@ -50,7 +54,7 @@ export const BlockAddMenu = ({ onAdd, darkMode }: BlockAddMenuProps) => {
                 darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <ChevronRight size={12} /> トグル
+              <ChevronRight size={12} /> {t('toggle')}
             </button>
             <button
               onClick={() => { onAdd(BLOCK_TYPES.CHECKBOX); setIsOpen(false); }}
@@ -58,7 +62,7 @@ export const BlockAddMenu = ({ onAdd, darkMode }: BlockAddMenuProps) => {
                 darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <CheckSquare size={12} /> チェック
+              <CheckSquare size={12} /> {t('check')}
             </button>
           </div>
         </>

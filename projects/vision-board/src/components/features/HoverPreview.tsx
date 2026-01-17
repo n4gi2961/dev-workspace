@@ -1,4 +1,7 @@
+'use client';
+
 import { CheckSquare, Square, Check, Target } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { HOVER_FONT_CONFIG } from '@/constants/styles';
 import { HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
 import { getTodayString } from '@/lib/utils';
@@ -13,6 +16,8 @@ interface HoverPreviewProps {
 }
 
 export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, textColor }: HoverPreviewProps) => {
+  const t = useTranslations('hoverPreview');
+  const tCommon = useTranslations('common');
   const todayString = getTodayString();
   const fontConfig = HOVER_FONT_CONFIG[fontSize as keyof typeof HOVER_FONT_CONFIG] || HOVER_FONT_CONFIG[HOVER_FONT_SIZES.MEDIUM];
   const color = textColor === HOVER_TEXT_COLORS.BLACK ? '#000000' : '#ffffff';
@@ -41,7 +46,7 @@ export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, 
           className="font-bold mb-3 drop-shadow-lg"
           style={{ fontSize: `${fontConfig.title}px`, color }}
         >
-          {page.title || '無題'}
+          {page.title || tCommon('untitled')}
         </h3>
 
         {todayRoutines.length > 0 && (
@@ -50,7 +55,7 @@ export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, 
               className="mb-2"
               style={{ fontSize: `${fontConfig.label}px`, color: mutedColor }}
             >
-              今日のルーティン
+              {t('todayRoutines')}
             </p>
             <div className="space-y-1">
               {todayRoutines.map((routine: any) => (
@@ -89,7 +94,7 @@ export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, 
               className="mb-2"
               style={{ fontSize: `${fontConfig.label}px`, color: mutedColor }}
             >
-              マイルストーン
+              {t('milestones')}
             </p>
             <div className="space-y-1">
               {allMilestones.map((milestone: any) => (
@@ -126,7 +131,7 @@ export const HoverPreview = ({ node, page, onToggleRoutine, darkMode, fontSize, 
 
         {todayRoutines.length === 0 && allMilestones.length === 0 && (
           <p style={{ fontSize: `${fontConfig.text}px`, color: mutedColor }}>
-            ダブルクリックで編集
+            {t('editHint')}
           </p>
         )}
       </div>

@@ -1,9 +1,12 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { X, ImagePlus, FileText, Target, Calendar, BarChart3, ChevronLeft, ChevronRight, GripVertical, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { CATEGORIES, DECADES } from '@/constants/ui';
 import { ROUTINE_COLORS } from '@/constants/styles';
 import { generateId, getTodayString } from '@/lib/utils';
-import { getEncouragementMessage } from '@/lib/messages';
+import { getMessageKey } from '@/lib/messages';
 import { MilestoneInput } from '@/components/ui/MilestoneInput';
 import { RoutineWeeklyTable } from '@/components/ui/RoutineWeeklyTable';
 import { DataCalendar } from '@/components/ui/DataCalendar';
@@ -18,6 +21,8 @@ interface PageEditorProps {
 }
 
 export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: PageEditorProps) => {
+  const t = useTranslations('pageEditor');
+  const tMessages = useTranslations('messages');
   const [activeTab, setActiveTab] = useState('overview');
   const [weekOffset, setWeekOffset] = useState(0);
   const [dragMilestoneIndex, setDragMilestoneIndex] = useState<number | null>(null);
@@ -35,10 +40,10 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
   }, [page.title, page.description]);
 
   const tabs = [
-    { id: 'overview', label: '概要', icon: FileText },
-    { id: 'milestones', label: 'マイルストーン', icon: Target },
-    { id: 'routines', label: 'ルーティン', icon: Calendar },
-    { id: 'data', label: 'データ', icon: BarChart3 },
+    { id: 'overview', label: t('tabs.overview'), icon: FileText },
+    { id: 'milestones', label: t('tabs.milestones'), icon: Target },
+    { id: 'routines', label: t('tabs.routines'), icon: Calendar },
+    { id: 'data', label: t('tabs.data'), icon: BarChart3 },
   ];
 
   const updateField = (field: string, value: any) => {
@@ -226,7 +231,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
               onBlur={() => updateField('title', localTitle)}
-              placeholder="目標のタイトル"
+              placeholder={t('titlePlaceholder')}
               className="w-full text-3xl font-bold bg-transparent border-none outline-none text-white placeholder-white/50 drop-shadow-lg"
             />
           </div>
@@ -244,9 +249,9 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                   : 'bg-gray-100 text-gray-700 border-gray-200'
               } border outline-none`}
             >
-              <option value="">カテゴリー未設定</option>
+              <option value="">{t('category.unset')}</option>
               {CATEGORIES.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                <option key={cat.id} value={cat.id}>{t(`category.${cat.id}`)}</option>
               ))}
             </select>
 
@@ -259,9 +264,9 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                   : 'bg-gray-100 text-gray-700 border-gray-200'
               } border outline-none`}
             >
-              <option value="">達成年代未設定</option>
+              <option value="">{t('targetYear.unset')}</option>
               {DECADES.map(dec => (
-                <option key={dec.id} value={dec.id}>{dec.label}</option>
+                <option key={dec.id} value={dec.id}>{t(`targetYear.${dec.id}`)}</option>
               ))}
             </select>
           </div>
@@ -298,13 +303,13 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
               <div className="space-y-6">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    概要・メモ
+                    {t('overview.title')}
                   </label>
                   <textarea
                     value={localDescription}
                     onChange={(e) => setLocalDescription(e.target.value)}
                     onBlur={() => updateField('description', localDescription)}
-                    placeholder="この目標について自由に記述..."
+                    placeholder={t('overview.placeholder')}
                     rows={4}
                     className={`w-full px-4 py-3 rounded-lg resize-none ${
                       darkMode
@@ -319,23 +324,23 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                   <LiquidFillProgress
                     percentage={milestoneProgress}
                     color="violet"
-                    label="マイルストーン進捗"
+                    label={t('milestones.progress')}
                     darkMode={darkMode}
-                    message={getEncouragementMessage(milestoneProgress, 'milestone')}
+                    message={tMessages(getMessageKey(milestoneProgress, 'milestone'))}
                   />
                   <LiquidFillProgress
                     percentage={todayProgress}
                     color="rose"
-                    label="今日のルーティン"
+                    label={t('routines.todayTitle')}
                     darkMode={darkMode}
-                    message={getEncouragementMessage(todayProgress, 'today')}
+                    message={tMessages(getMessageKey(todayProgress, 'today'))}
                   />
                   <LiquidFillProgress
                     percentage={routineRate}
                     color="emerald"
-                    label="継続率 (30日)"
+                    label={t('routines.streakLabel')}
                     darkMode={darkMode}
-                    message={getEncouragementMessage(routineRate, 'streak')}
+                    message={tMessages(getMessageKey(routineRate, 'streak'))}
                   />
                 </div>
               </div>
@@ -345,7 +350,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
             {activeTab === 'milestones' && (
               <div className="space-y-3">
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  目標達成までの中長期的なステップを管理します。ドラッグで並び替え可能です。
+                  {t('milestones.description')}
                 </p>
 
                 {(page.milestones || []).map((milestone: any, idx: number) => (
@@ -436,7 +441,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
             {activeTab === 'routines' && (
               <div className="space-y-4">
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  日々の習慣を管理します。色をクリックして変更、ドラッグで並び替えできます。
+                  {t('routines.description')}
                 </p>
 
                 <div className="flex items-center justify-between">
@@ -456,7 +461,7 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
                         : darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'
                     }`}
                   >
-                    今週
+                    {t('routines.thisWeek')}
                   </button>
                   <button
                     onClick={() => setWeekOffset(weekOffset + 1)}

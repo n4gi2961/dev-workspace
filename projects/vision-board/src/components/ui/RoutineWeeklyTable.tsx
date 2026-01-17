@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { GripVertical, Check, Trash2, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getWeekDates, getTodayString, getDayLabel } from '@/lib/utils';
 import { ColorPicker } from '@/components/ui/ColorPicker';
 
@@ -16,6 +19,8 @@ interface RoutineWeeklyTableProps {
 }
 
 export const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAddRoutine, onDeleteRoutine, onUpdateRoutineColor, onUpdateRoutineTitle, onReorder, darkMode }: RoutineWeeklyTableProps) => {
+  const t = useTranslations('routineTable');
+  const tPageEditor = useTranslations('pageEditor');
   const [newRoutineTitle, setNewRoutineTitle] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
@@ -60,7 +65,7 @@ export const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAd
           <tr className={darkMode ? 'bg-gray-700/50' : 'bg-gray-200'}>
             <th className="w-8"></th>
             <th className={`py-2 px-3 text-left font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              タスク
+              {t('task')}
             </th>
             {weekDates.map((date, idx) => {
               const isToday = date === todayString;
@@ -181,7 +186,7 @@ export const RoutineWeeklyTable = ({ routines, weekOffset, onToggleRoutine, onAd
                   value={newRoutineTitle}
                   onChange={(e) => setNewRoutineTitle(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddRoutine()}
-                  placeholder="新しいルーティンを追加..."
+                  placeholder={tPageEditor('routines.addPlaceholder')}
                   className={`flex-1 bg-transparent border-none outline-none text-sm ${
                     darkMode ? 'text-gray-300 placeholder-gray-500' : 'text-gray-700 placeholder-gray-400'
                   }`}

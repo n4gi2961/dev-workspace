@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 import VisionBoard from '@/app/vision-board'
@@ -28,6 +29,8 @@ export default function BoardPage({ params }: BoardPageProps) {
 
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const t = useTranslations('boards')
+  const tBoard = useTranslations('board')
   // ✅ 必須: useMemoでキャッシュ
   const supabase = useMemo(() => createClient(), [])
   const [board, setBoard] = useState<Board | null>(null)
@@ -115,17 +118,17 @@ export default function BoardPage({ params }: BoardPageProps) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            ボードが見つかりません
+            {t('notFound.title')}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            指定されたボードは存在しないか、アクセス権限がありません
+            {t('notFound.message')}
           </p>
           <button
             onClick={() => router.push('/boards')}
             className="flex items-center gap-2 mx-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
           >
             <ChevronLeft className="w-4 h-4" />
-            ボード一覧に戻る
+            {t('notFound.backToList')}
           </button>
         </div>
       </div>
@@ -141,10 +144,10 @@ export default function BoardPage({ params }: BoardPageProps) {
           <button
             onClick={() => router.push('/boards')}
             className="flex items-center gap-1 sm:gap-2 p-2 sm:px-3 sm:py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg backdrop-blur-sm transition-all"
-            title="ボード一覧"
+            title={tBoard('backToList')}
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">ボード一覧</span>
+            <span className="hidden sm:inline">{tBoard('backToList')}</span>
           </button>
         </div>
       )}

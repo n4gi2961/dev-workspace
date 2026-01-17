@@ -1,18 +1,18 @@
-// Categories for goals
+// Categories for goals (labels are in translation files: pageEditor.category.{id})
 export const CATEGORIES = [
-  { id: 'place', label: '行きたい場所', color: 'bg-blue-500' },
-  { id: 'state', label: 'なりたい状態', color: 'bg-green-500' },
-  { id: 'experience', label: '体験したいこと', color: 'bg-purple-500' },
-];
+  { id: 'place', color: 'bg-blue-500' },
+  { id: 'state', color: 'bg-green-500' },
+  { id: 'experience', color: 'bg-purple-500' },
+] as const;
 
-// Decades for timeline
+// Decades for timeline (labels are in translation files: pageEditor.targetYear.{id})
 export const DECADES = [
-  { id: '2020s', label: '2020年代' },
-  { id: '2030s', label: '2030年代' },
-  { id: '2040s', label: '2040年代' },
-  { id: '2050s', label: '2050年代' },
-  { id: '2060s', label: '2060年代以降' },
-];
+  { id: '2020s' },
+  { id: '2030s' },
+  { id: '2040s' },
+  { id: '2050s' },
+  { id: '2060s' },
+] as const;
 
 // Sample images
 export const SAMPLE_IMAGES = [

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Klee_One } from "next/font/google";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -21,21 +23,26 @@ const kleeOne = Klee_One({
 });
 
 export const metadata: Metadata = {
-  title: "Vision Board App",
+  title: "Asterize",
   description: "夢と目標を視覚化するビジョンボードアプリケーション",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="ja">
+    <html lang={locale}>
       <body
         className={`${notoSansJP.variable} ${notoSerifJP.variable} ${kleeOne.variable} antialiased`}
       >
-        {children}
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

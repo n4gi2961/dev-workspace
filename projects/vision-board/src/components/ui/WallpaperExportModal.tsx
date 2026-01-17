@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { NODE_TYPES } from '@/constants/types';
 
@@ -10,16 +13,17 @@ interface WallpaperExportModalProps {
 }
 
 export const WallpaperExportModal = ({ nodes, darkMode, onClose }: WallpaperExportModalProps) => {
+  const t = useTranslations('export');
   const [resolution, setResolution] = useState('1920x1080');
   const [exporting, setExporting] = useState(false);
 
   const resolutions = [
-    { id: '1920x1080', label: 'デスクトップ (1920×1080)', width: 1920, height: 1080 },
-    { id: '2560x1440', label: 'デスクトップ QHD (2560×1440)', width: 2560, height: 1440 },
-    { id: '3840x2160', label: 'デスクトップ 4K (3840×2160)', width: 3840, height: 2160 },
-    { id: '1170x2532', label: 'iPhone (1170×2532)', width: 1170, height: 2532 },
-    { id: '1284x2778', label: 'iPhone Pro Max (1284×2778)', width: 1284, height: 2778 },
-    { id: '2048x2732', label: 'iPad (2048×2732)', width: 2048, height: 2732 },
+    { id: '1920x1080', label: t('resolutions.desktop1080'), width: 1920, height: 1080 },
+    { id: '2560x1440', label: t('resolutions.desktop1440'), width: 2560, height: 1440 },
+    { id: '3840x2160', label: t('resolutions.desktop4k'), width: 3840, height: 2160 },
+    { id: '1170x2532', label: t('resolutions.iphone'), width: 1170, height: 2532 },
+    { id: '1284x2778', label: t('resolutions.iphoneMax'), width: 1284, height: 2778 },
+    { id: '2048x2732', label: t('resolutions.ipad'), width: 2048, height: 2732 },
   ];
 
   const handleExport = async () => {
@@ -106,7 +110,7 @@ export const WallpaperExportModal = ({ nodes, darkMode, onClose }: WallpaperExpo
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            壁紙として出力
+            {t('title')}
           </h2>
           <button
             onClick={onClose}
@@ -121,7 +125,7 @@ export const WallpaperExportModal = ({ nodes, darkMode, onClose }: WallpaperExpo
         <div className="space-y-4">
           <div>
             <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              解像度を選択
+              {t('selectResolution')}
             </label>
             <div className="space-y-2">
               {resolutions.map(res => (
@@ -147,11 +151,11 @@ export const WallpaperExportModal = ({ nodes, darkMode, onClose }: WallpaperExpo
             disabled={exporting}
             className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-violet-500/25 disabled:opacity-50"
           >
-            {exporting ? '出力中...' : 'ダウンロード'}
+            {exporting ? t('exporting') : t('download')}
           </button>
 
           <p className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-            ダウンロード後、デバイスの設定から壁紙に設定してください
+            {t('instruction')}
           </p>
         </div>
       </div>

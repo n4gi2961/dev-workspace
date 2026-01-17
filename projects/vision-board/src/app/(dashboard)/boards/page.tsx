@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, MoreVertical, Pencil, Trash2, X, Check } from 'lucide-react'
@@ -18,6 +19,10 @@ interface Board {
 export default function BoardsPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const t = useTranslations('boards')
+  const tCommon = useTranslations('common')
+  const tAuth = useTranslations('auth')
+  const tBoard = useTranslations('board')
   // ✅ 必須: useMemoでキャッシュ
   const supabase = useMemo(() => createClient(), [])
   const [boards, setBoards] = useState<Board[]>([])
@@ -67,7 +72,7 @@ export default function BoardsPage() {
         .from('boards')
         .insert({
           user_id: user.id,
-          name: '新しいボード',
+          name: tBoard('newBoardDefault'),
           description: ''
         })
         .select()
@@ -130,7 +135,7 @@ export default function BoardsPage() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-gray-900 dark:text-white">読み込み中...</div>
+        <div className="text-gray-900 dark:text-white">{tCommon('loading')}</div>
       </div>
     )
   }
@@ -146,7 +151,7 @@ export default function BoardsPage() {
           <div className="flex justify-between h-14 sm:h-16">
             <div className="flex items-center">
               <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                Vision Board
+                {t('title')}
               </h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -157,7 +162,7 @@ export default function BoardsPage() {
                 onClick={handleLogout}
                 className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                ログアウト
+                {tAuth('logout')}
               </button>
             </div>
           </div>
@@ -168,28 +173,28 @@ export default function BoardsPage() {
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              ボード一覧
+              {t('listTitle')}
             </h2>
             <button
               onClick={handleCreateBoard}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
             >
               <Plus className="w-4 h-4" />
-              新規ボード
+              {t('newBoard')}
             </button>
           </div>
 
           {boards.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-center">
               <p className="text-gray-500 dark:text-gray-400 mb-4">
-                まだボードがありません
+                {t('empty')}
               </p>
               <button
                 onClick={handleCreateBoard}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
               >
                 <Plus className="w-4 h-4" />
-                最初のボードを作成
+                {t('createFirst')}
               </button>
             </div>
           ) : (
@@ -235,7 +240,7 @@ export default function BoardsPage() {
                             className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                           >
                             <Pencil className="w-4 h-4" />
-                            ボード名を編集
+                            {t('editName')}
                           </button>
                           <button
                             onClick={(e) => {
@@ -246,7 +251,7 @@ export default function BoardsPage() {
                             className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
                           >
                             <Trash2 className="w-4 h-4" />
-                            このボードを削除
+                            {t('deleteBoard')}
                           </button>
                         </div>
                       </>
@@ -298,7 +303,7 @@ export default function BoardsPage() {
                     </p>
                   )}
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    最終更新: {new Date(board.updated_at).toLocaleDateString('ja-JP')}
+                    {t('lastUpdated')} {new Date(board.updated_at).toLocaleDateString()}
                   </p>
                 </div>
               ))}
@@ -315,23 +320,23 @@ export default function BoardsPage() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    ボードを削除
+                    {t('deleteModal.title')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 mb-6">
-                    本当に削除してもよろしいですか？この操作は取り消せません。
+                    {t('deleteModal.message')}
                   </p>
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={() => setDeleteConfirmId(null)}
                       className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md"
                     >
-                      キャンセル
+                      {tCommon('cancel')}
                     </button>
                     <button
                       onClick={() => handleDeleteBoard(deleteConfirmId)}
                       className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
                     >
-                      削除する
+                      {t('deleteModal.confirm')}
                     </button>
                   </div>
                 </div>

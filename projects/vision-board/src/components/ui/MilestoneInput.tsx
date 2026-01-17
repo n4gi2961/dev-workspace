@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
 import { Square, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface MilestoneInputProps {
   onAdd: (title: string) => void;
@@ -7,6 +10,7 @@ interface MilestoneInputProps {
 }
 
 export const MilestoneInput = ({ onAdd, darkMode }: MilestoneInputProps) => {
+  const t = useTranslations('pageEditor');
   const [title, setTitle] = useState('');
 
   const handleSubmit = () => {
@@ -25,7 +29,7 @@ export const MilestoneInput = ({ onAdd, darkMode }: MilestoneInputProps) => {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        placeholder="新しいマイルストーンを追加..."
+        placeholder={t('milestones.addPlaceholder')}
         className={`flex-1 bg-transparent border-none outline-none ${
           darkMode ? 'text-gray-200 placeholder-gray-500' : 'text-gray-700 placeholder-gray-400'
         }`}

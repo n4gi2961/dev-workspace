@@ -1,4 +1,7 @@
+'use client';
+
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { NODE_TYPES } from '@/constants/types';
 
 interface AmbientModeProps {
@@ -8,6 +11,7 @@ interface AmbientModeProps {
 }
 
 export const AmbientMode = ({ nodes, darkMode, onClose }: AmbientModeProps) => {
+  const t = useTranslations('ambientMode');
   const [currentIndex, setCurrentIndex] = useState(0);
   const imageNodes = nodes.filter(n => n.type === NODE_TYPES.IMAGE);
 
@@ -38,7 +42,7 @@ export const AmbientMode = ({ nodes, darkMode, onClose }: AmbientModeProps) => {
         className="fixed inset-0 z-50 bg-black flex items-center justify-center cursor-pointer"
         onClick={onClose}
       >
-        <p className="text-white/60 text-lg">画像を追加してください</p>
+        <p className="text-white/60 text-lg">{t('addImages')}</p>
       </div>
     );
   }
@@ -85,7 +89,7 @@ export const AmbientMode = ({ nodes, darkMode, onClose }: AmbientModeProps) => {
       )}
 
       <div className="absolute top-6 right-6 text-white/40 text-sm">
-        ESC または クリックで閉じる
+        {t('closeHint')}
       </div>
     </div>
   );

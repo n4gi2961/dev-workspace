@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
 import { createInitialPage } from '@/lib/initialData';
@@ -22,6 +25,7 @@ interface DraggableImageNodeProps {
 }
 
 export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pages, onToggleRoutine, darkMode, isSelected, onSelect, zoom, isFullscreenMode = false }: DraggableImageNodeProps) => {
+  const t = useTranslations('node.image');
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<string | null>(null);
@@ -325,7 +329,7 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
         {showPlaceHint && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-40 rounded-lg">
             <span className="text-white text-sm font-medium px-3 py-1.5 bg-black/70 rounded-lg">
-              長押しで配置
+              {t('holdToPlace')}
             </span>
           </div>
         )}
