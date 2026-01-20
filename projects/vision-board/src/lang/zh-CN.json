@@ -81,7 +81,21 @@
     "fullscreen": "全屏",
     "backToList": "返回看板列表",
     "focusMode": "专注模式",
-    "fullscreenMode": "全屏模式"
+    "fullscreenMode": "全屏模式",
+    "starStack": {
+      "title": "星星瓶",
+      "subtitle": "习惯星星收藏",
+      "counter": "★ {count} / {max}",
+      "addStar": "添加星星",
+      "addBatch": "添加20颗",
+      "autoAdd": "自动添加",
+      "stop": "停止",
+      "reset": "重置",
+      "rotate": "拖动旋转",
+      "zoom": "滚动缩放",
+      "todayCompleted": "今日完成: {count}项",
+      "emptyMessage": "完成习惯来收集星星吧！"
+    }
   },
   "node": {
     "image": {
@@ -190,7 +204,8 @@
   },
   "ambientMode": {
     "addImages": "请添加图片",
-    "closeHint": "按ESC或点击关闭"
+    "closeHint": "按ESC或点击关闭",
+    "scrollHint": "滚动切换图片 • 悬停查看日程"
   },
   "hints": {
     "desktop": "拖拽移动图片 • 滚轮拖拽平移 • 双击添加文字",

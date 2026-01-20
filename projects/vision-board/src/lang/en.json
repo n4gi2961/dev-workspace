@@ -81,7 +81,21 @@
     "fullscreen": "Fullscreen",
     "backToList": "Back to boards",
     "focusMode": "Focus Mode",
-    "fullscreenMode": "Fullscreen Mode"
+    "fullscreenMode": "Fullscreen Mode",
+    "starStack": {
+      "title": "Star Stack",
+      "subtitle": "Habit Star Collection",
+      "counter": "★ {count} / {max}",
+      "addStar": "Add Star",
+      "addBatch": "Add 20",
+      "autoAdd": "Auto Add",
+      "stop": "Stop",
+      "reset": "Reset",
+      "rotate": "Drag to rotate",
+      "zoom": "Scroll to zoom",
+      "todayCompleted": "Today: {count} completed",
+      "emptyMessage": "Complete habits to collect stars!"
+    }
   },
   "node": {
     "image": {
@@ -190,7 +204,8 @@
   },
   "ambientMode": {
     "addImages": "Please add images",
-    "closeHint": "Press ESC or click to close"
+    "closeHint": "Press ESC or click to close",
+    "scrollHint": "Scroll to switch images • Hover for routines"
   },
   "hints": {
     "desktop": "Drag to move images • Wheel drag to pan • Double-click to add text",

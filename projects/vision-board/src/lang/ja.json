@@ -81,7 +81,21 @@
     "fullscreen": "全画面表示",
     "backToList": "ボード一覧",
     "focusMode": "フォーカスモード",
-    "fullscreenMode": "フルスクリーンモード"
+    "fullscreenMode": "フルスクリーンモード",
+    "starStack": {
+      "title": "スタースタック",
+      "subtitle": "習慣の星コレクション",
+      "counter": "★ {count} / {max}",
+      "addStar": "星を追加",
+      "addBatch": "20個追加",
+      "autoAdd": "自動追加",
+      "stop": "停止",
+      "reset": "リセット",
+      "rotate": "ドラッグで回転",
+      "zoom": "スクロールでズーム",
+      "todayCompleted": "今日の完了: {count}件",
+      "emptyMessage": "習慣を完了して星を集めよう!"
+    }
   },
   "node": {
     "image": {
@@ -190,7 +204,8 @@
   },
   "ambientMode": {
     "addImages": "画像を追加してください",
-    "closeHint": "ESC または クリックで閉じる"
+    "closeHint": "ESC または クリックで閉じる",
+    "scrollHint": "スクロールで画像切替 • ホバーでルーティン表示"
   },
   "hints": {
     "desktop": "ドラッグで画像を移動 • ホイールドラッグでパン • ダブルクリックでテキスト追加",

@@ -18,9 +18,10 @@ interface PageEditorProps {
   onUpdate: (updatedPage: any) => void;
   onClose: () => void;
   darkMode: boolean;
+  onRoutineChecked?: (routineColor: string) => void;
 }
 
-export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: PageEditorProps) => {
+export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode, onRoutineChecked }: PageEditorProps) => {
   const t = useTranslations('pageEditor');
   const tMessages = useTranslations('messages');
   const [activeTab, setActiveTab] = useState('overview');
@@ -112,6 +113,15 @@ export const PageEditor = ({ page, nodeImage, onUpdate, onClose, darkMode }: Pag
   };
 
   const toggleRoutine = (routineId: string, date: string) => {
+    const routine = (page.routines || []).find((r: any) => r.id === routineId);
+    const wasChecked = routine?.history?.[date] || false;
+    const willBeChecked = !wasChecked;
+
+    // チェック時に色を親に通知（Star Stack用）
+    if (willBeChecked && routine?.color && onRoutineChecked) {
+      onRoutineChecked(routine.color);
+    }
+
     const routines = (page.routines || []).map((r: any) => {
       if (r.id === routineId) {
         const newHistory = { ...r.history };

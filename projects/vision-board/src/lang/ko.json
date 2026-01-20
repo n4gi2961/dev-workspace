@@ -81,7 +81,21 @@
     "fullscreen": "전체화면",
     "backToList": "보드 목록",
     "focusMode": "포커스 모드",
-    "fullscreenMode": "전체화면 모드"
+    "fullscreenMode": "전체화면 모드",
+    "starStack": {
+      "title": "스타 스택",
+      "subtitle": "습관 별 컬렉션",
+      "counter": "★ {count} / {max}",
+      "addStar": "별 추가",
+      "addBatch": "20개 추가",
+      "autoAdd": "자동 추가",
+      "stop": "정지",
+      "reset": "초기화",
+      "rotate": "드래그로 회전",
+      "zoom": "스크롤로 확대/축소",
+      "todayCompleted": "오늘 완료: {count}개",
+      "emptyMessage": "습관을 완료하고 별을 모아보세요!"
+    }
   },
   "node": {
     "image": {
@@ -190,7 +204,8 @@
   },
   "ambientMode": {
     "addImages": "이미지를 추가해주세요",
-    "closeHint": "ESC 또는 클릭하여 닫기"
+    "closeHint": "ESC 또는 클릭하여 닫기",
+    "scrollHint": "스크롤로 이미지 전환 • 호버로 루틴 표시"
   },
   "hints": {
     "desktop": "드래그하여 이미지 이동 • 휠 드래그로 패닝 • 더블클릭으로 텍스트 추가",

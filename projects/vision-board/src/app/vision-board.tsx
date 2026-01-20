@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical } from 'lucide-react';
+import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { BLOCK_TYPES, NODE_TYPES, IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
@@ -18,6 +18,8 @@ import { TextToolbar } from '@/components/ui/TextToolbar';
 import { ZoomControl } from '@/components/ui/ZoomControl';
 import { AmbientMode } from '@/components/ui/AmbientMode';
 import { WallpaperExportModal } from '@/components/ui/WallpaperExportModal';
+import { StarStackModal } from '@/components/ui/StarStackModal';
+import { useStarStack } from '@/hooks/useStarStack';
 import { ShapeSelector } from '@/components/ui/ShapeSelector';
 import { MilestoneInput } from '@/components/ui/MilestoneInput';
 import { RoutineWeeklyTable } from '@/components/ui/RoutineWeeklyTable';
@@ -89,7 +91,27 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   const saveSettingsRef = useRef<NodeJS.Timeout | null>(null);
   const [showAmbientMode, setShowAmbientMode] = useState(false);
   const [showWallpaperExport, setShowWallpaperExport] = useState(false);
+  const [showStarStack, setShowStarStack] = useState(false);
+  const [pendingStarColors, setPendingStarColors] = useState<string[]>([]);
   const [isFullscreenMode, setIsFullscreenMode] = useState(false);
+
+  // ✅ useStarStack を親コンポーネントで呼び出し（モーダル開閉で状態が消えないように）
+  const {
+    stars,
+    isLoading: isStarStackLoading,
+    totalStars,
+    newStarsCount,
+    showCork,
+    addStar,
+    addBatch,
+    resetStars,
+    syncWithSupabase,
+  } = useStarStack({
+    userId,
+    boardId,
+    pages,
+    pendingStarColors,
+  });
 
   // 全画面モード変更時に親に通知
   useEffect(() => {
@@ -502,6 +524,16 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     const page = pages[nodeId];
     if (!page) return;
 
+    // チェック状態を取得
+    const routine = page.routines?.find(r => r.id === routineId);
+    const wasChecked = routine?.history?.[date] || false;
+    const willBeChecked = !wasChecked;
+
+    // チェックされた場合、その習慣の色を記録（Star Stack用）
+    if (willBeChecked && routine?.color) {
+      setPendingStarColors(prev => [...prev, routine.color]);
+    }
+
     const routines = (page.routines || []).map(r => {
       if (r.id === routineId) {
         const newHistory = { ...r.history };
@@ -663,6 +695,18 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
             </button>
 
             <button
+              onClick={() => setShowStarStack(true)}
+              className={`p-2 sm:p-2.5 rounded-xl transition-all ${
+                darkMode
+                  ? 'bg-gray-800 hover:bg-gray-700 text-amber-400'
+                  : 'bg-gray-100 hover:bg-gray-200 text-amber-600'
+              }`}
+              title={t('starStack.title')}
+            >
+              <Sparkles size={18} />
+            </button>
+
+            <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 sm:p-2.5 rounded-xl transition-all ${
                 darkMode
@@ -784,6 +828,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           onUpdate={updatePage}
           onClose={() => setEditingPageId(null)}
           darkMode={darkMode}
+          onRoutineChecked={(color) => setPendingStarColors(prev => [...prev, color])}
         />
       )}
 
@@ -846,6 +891,8 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
       {showAmbientMode && (
         <AmbientMode
           nodes={nodes}
+          pages={pages}
+          onToggleRoutine={handleToggleRoutine}
           darkMode={darkMode}
           onClose={() => setShowAmbientMode(false)}
         />
@@ -856,6 +903,23 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           nodes={nodes}
           darkMode={darkMode}
           onClose={() => setShowWallpaperExport(false)}
+        />
+      )}
+
+      {showStarStack && (
+        <StarStackModal
+          stars={stars}
+          isLoading={isStarStackLoading}
+          totalStars={totalStars}
+          newStarsCount={newStarsCount}
+          showCork={showCork}
+          addStar={addStar}
+          addBatch={addBatch}
+          resetStars={resetStars}
+          syncWithSupabase={syncWithSupabase}
+          onClearPendingColors={() => setPendingStarColors([])}
+          darkMode={darkMode}
+          onClose={() => setShowStarStack(false)}
         />
       )}
 

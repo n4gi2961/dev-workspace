@@ -81,7 +81,21 @@
     "fullscreen": "Pantalla completa",
     "backToList": "Volver a tableros",
     "focusMode": "Modo enfoque",
-    "fullscreenMode": "Modo pantalla completa"
+    "fullscreenMode": "Modo pantalla completa",
+    "starStack": {
+      "title": "Frasco de Estrellas",
+      "subtitle": "Colección de Estrellas de Hábitos",
+      "counter": "★ {count} / {max}",
+      "addStar": "Añadir Estrella",
+      "addBatch": "Añadir 20",
+      "autoAdd": "Auto Añadir",
+      "stop": "Parar",
+      "reset": "Reiniciar",
+      "rotate": "Arrastra para rotar",
+      "zoom": "Desplaza para zoom",
+      "todayCompleted": "Hoy: {count} completados",
+      "emptyMessage": "¡Completa hábitos para coleccionar estrellas!"
+    }
   },
   "node": {
     "image": {
@@ -190,7 +204,8 @@
   },
   "ambientMode": {
     "addImages": "Por favor, añade imágenes",
-    "closeHint": "Pulsa ESC o clic para cerrar"
+    "closeHint": "Pulsa ESC o clic para cerrar",
+    "scrollHint": "Desplaza para cambiar imágenes • Pasa el cursor para ver rutinas"
   },
   "hints": {
     "desktop": "Arrastra para mover imágenes • Arrastra con rueda para desplazar • Doble clic para añadir texto",

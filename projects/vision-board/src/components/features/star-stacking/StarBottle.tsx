@@ -1,9 +1,14 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { useMatcapTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { STAR_STACK_CONFIG } from '@/constants/starStack';
+
+interface StarBottleProps {
+  showCork?: boolean;
+}
 
 /**
  * ボトルのプロファイル（輪郭）を生成
@@ -80,11 +85,155 @@ function createRimProfile(): THREE.Vector2[] {
   return points;
 }
 
-export function StarBottle() {
+/**
+ * コルクの粒状パターンをCanvasに描画する共通関数
+ */
+function drawCorkPattern(ctx: CanvasRenderingContext2D, size: number): void {
+  // ベース色（明るいサンド/タン色）
+  ctx.fillStyle = '#d4b896';
+  ctx.fillRect(0, 0, size, size);
+
+  // 粒状パターンを追加（密度を上げて均一に）
+  for (let i = 0; i < 2000; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const particleSize = Math.random() * 3 + 1;
+    const brightness = Math.random() * 50 - 25;
+    const r = Math.min(255, Math.max(0, 212 + brightness));
+    const g = Math.min(255, Math.max(0, 184 + brightness));
+    const b = Math.min(255, Math.max(0, 150 + brightness));
+    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    ctx.beginPath();
+    ctx.arc(x, y, particleSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 小さな穴（コルクの多孔質な見た目）
+  for (let i = 0; i < 300; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const holeSize = Math.random() * 2 + 0.5;
+    ctx.fillStyle = 'rgba(139, 115, 85, 0.5)';
+    ctx.beginPath();
+    ctx.arc(x, y, holeSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * コルク側面用テクスチャを生成（横方向に繰り返し）
+ * cylinderGeometryのグループ0（側面）用
+ */
+function createCorkSideTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  drawCorkPattern(ctx, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  // 側面のUVは横方向が円周、縦方向が高さ
+  // 正方形に近づけるため、横方向を多く繰り返す
+  texture.repeat.set(4, 1);
+  return texture;
+}
+
+/**
+ * コルク上面/底面用テクスチャを生成（均一な繰り返し）
+ * cylinderGeometryのグループ1（上面）、グループ2（底面）用
+ */
+function createCorkCapTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  drawCorkPattern(ctx, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  // 上面/底面は均一な繰り返しで引き伸ばしを防ぐ
+  texture.repeat.set(2, 2);
+  return texture;
+}
+
+export function StarBottle({ showCork = true }: StarBottleProps) {
   const [glassMatcap] = useMatcapTexture('C7C0AC_2E181B_543B30_6B6270', 256);
 
   const profile = STAR_STACK_CONFIG.BOTTLE_PROFILE;
   const yOffset = STAR_STACK_CONFIG.BOTTLE.Y_OFFSET;
+
+  // Cork animation state
+  const corkRef = useRef<THREE.Mesh>(null);
+  const corkAnimState = useRef({ opacity: 1, yOffset: 0, targetOpacity: 1, targetYOffset: 0 });
+
+  // Cork textures（側面用と上面/底面用を分離）
+  const corkSideTexture = useMemo(() => createCorkSideTexture(), []);
+  const corkCapTexture = useMemo(() => createCorkCapTexture(), []);
+
+  // Cork materials配列（cylinderGeometryは3つのマテリアルグループを持つ）
+  // グループ0: 側面、グループ1: 上面、グループ2: 底面
+  const corkMaterials = useMemo(() => [
+    // 側面用マテリアル
+    new THREE.MeshStandardMaterial({
+      map: corkSideTexture,
+      color: 0xd4b896,
+      roughness: 0.95,
+      metalness: 0.0,
+      depthWrite: true,
+    }),
+    // 上面用マテリアル
+    new THREE.MeshStandardMaterial({
+      map: corkCapTexture,
+      color: 0xd4b896,
+      roughness: 0.95,
+      metalness: 0.0,
+      depthWrite: true,
+    }),
+    // 底面用マテリアル
+    new THREE.MeshStandardMaterial({
+      map: corkCapTexture,
+      color: 0xd4b896,
+      roughness: 0.95,
+      metalness: 0.0,
+      depthWrite: true,
+    }),
+  ], [corkSideTexture, corkCapTexture]);
+
+  // Animate cork
+  useFrame((_, delta) => {
+    if (!corkRef.current) return;
+
+    const state = corkAnimState.current;
+    state.targetOpacity = showCork ? 1 : 0;
+    state.targetYOffset = showCork ? 0 : 0.8; // Move up when hiding
+
+    // Smooth interpolation
+    const speed = 3;
+    state.opacity += (state.targetOpacity - state.opacity) * speed * delta;
+    state.yOffset += (state.targetYOffset - state.yOffset) * speed * delta;
+
+    // Apply to mesh
+    corkRef.current.position.y = corkY + state.yOffset;
+
+    // opacityが1に近いときはtransparentをfalseに
+    // これにより口リム（透明オブジェクト）越しのdepth sorting問題を回避
+    const isFullyOpaque = state.opacity > 0.99;
+
+    corkMaterials.forEach(mat => {
+      mat.opacity = state.opacity;
+      mat.transparent = !isFullyOpaque; // 完全不透明時はfalseに
+      mat.needsUpdate = true;
+    });
+
+    corkRef.current.visible = state.opacity > 0.01;
+  });
 
   // ボトル本体のジオメトリをメモ化
   const bottleGeometry = useMemo(() => {
@@ -158,10 +307,9 @@ export function StarBottle() {
         />
       </mesh>
 
-      {/* コルク栓（下部が口リムに埋まる） */}
-      <mesh position={[0, corkY, 0]}>
-        <cylinderGeometry args={[corkRadius * 1.15, corkRadius, corkHeight, 16]} />
-        <meshStandardMaterial color="#b8956a" roughness={0.9} />
+      {/* コルク栓（アニメーション付き、複数マテリアル対応） */}
+      <mesh ref={corkRef} position={[0, corkY, 0]} renderOrder={2} material={corkMaterials}>
+        <cylinderGeometry args={[corkRadius * 1.15, corkRadius, corkHeight, 24]} />
       </mesh>
     </group>
   );

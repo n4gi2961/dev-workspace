@@ -12,9 +12,10 @@ import { STAR_STACK_CONFIG } from '@/constants/starStack';
 interface StarStackSceneProps {
   stars: StarInstance[];
   darkMode?: boolean;
+  showCork?: boolean;
 }
 
-function Scene({ stars }: { stars: StarInstance[] }) {
+function Scene({ stars, showCork = true }: { stars: StarInstance[]; showCork?: boolean }) {
   return (
     <>
       <ambientLight intensity={0.6} />
@@ -36,7 +37,7 @@ function Scene({ stars }: { stars: StarInstance[] }) {
       </Physics>
 
       <Suspense fallback={null}>
-        <StarBottle />
+        <StarBottle showCork={showCork} />
       </Suspense>
 
       <OrbitControls
@@ -50,7 +51,7 @@ function Scene({ stars }: { stars: StarInstance[] }) {
   );
 }
 
-export function StarStackScene({ stars, darkMode = false }: StarStackSceneProps) {
+export function StarStackScene({ stars, darkMode = false, showCork = true }: StarStackSceneProps) {
   const bgColor = darkMode ? '#1f2937' : '#f5f0e8';
   const fogColor = darkMode ? '#1f2937' : '#f5f0e8';
 
@@ -71,7 +72,7 @@ export function StarStackScene({ stars, darkMode = false }: StarStackSceneProps)
       <color attach="background" args={[bgColor]} />
       <fog attach="fog" args={[fogColor, 5, 15]} />
       <Suspense fallback={null}>
-        <Scene stars={stars} />
+        <Scene stars={stars} showCork={showCork} />
       </Suspense>
     </Canvas>
   );
