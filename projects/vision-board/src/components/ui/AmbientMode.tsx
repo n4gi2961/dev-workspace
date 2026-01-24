@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { NODE_TYPES } from '@/constants/types';
 import { HoverPreview } from '@/components/features/HoverPreview';
+import { useMeteorAnimation } from '@/hooks/useMeteorAnimation';
+import { MeteorEffect } from '@/components/ui/MeteorEffect';
+import { getTodayString } from '@/lib/utils';
 
 interface AmbientModeProps {
   nodes: any[];
@@ -19,8 +22,60 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
   const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [slideDirection, setSlideDirection] = useState<'up' | 'down' | null>(null);
   const [isShowingDetails, setIsShowingDetails] = useState(false);
-  const imageNodes = nodes.filter(n => n.type === NODE_TYPES.IMAGE);
   const lastWheelTime = useRef(0);
+
+  // シャッフル結果をキャッシュ（ノードIDが変わらない限り再計算しない）
+  const shuffledNodesRef = useRef<any[]>([]);
+  const prevNodeIdsRef = useRef<string>('');
+
+  const imageNodes = useMemo(() => {
+    const filtered = nodes.filter(n => n.type === NODE_TYPES.IMAGE);
+    const currentIds = filtered.map(n => n.id).sort().join(',');
+
+    // ノードのID構成が変わった場合のみ再シャッフル
+    if (currentIds !== prevNodeIdsRef.current) {
+      prevNodeIdsRef.current = currentIds;
+      const shuffled = [...filtered];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      shuffledNodesRef.current = shuffled;
+    }
+
+    return shuffledNodesRef.current;
+  }, [nodes]);
+
+  // Meteor animation for routine check
+  const { meteors, trigger: triggerMeteor } = useMeteorAnimation({ duration: 1000 });
+  const todayString = getTodayString();
+
+  // Wrap onToggleRoutine to trigger meteor on check (5% chance for dopamine effect)
+  const METEOR_CHANCE = 0.05; // 5% probability
+  const handleToggleRoutine = useCallback((nodeId: string, routineId: string, date: string) => {
+    // Check if this is a check (not uncheck) by looking at current state
+    const page = pages[nodeId];
+    if (page) {
+      const routine = page.routines?.find((r: any) => r.id === routineId);
+      if (routine && !routine.history?.[date]) {
+        // This is a check action - trigger meteor with 5% probability
+        const isMeteor = Math.random() < METEOR_CHANCE;
+        if (isMeteor) {
+          triggerMeteor(routine.color || '#8b5cf6');
+          // Strong haptic feedback for meteor (pattern: vibrate-pause-vibrate)
+          if (navigator.vibrate) {
+            navigator.vibrate([50, 30, 80]);
+          }
+        } else {
+          // Normal haptic feedback
+          if (navigator.vibrate) {
+            navigator.vibrate(25);
+          }
+        }
+      }
+    }
+    onToggleRoutine(nodeId, routineId, date);
+  }, [pages, onToggleRoutine, triggerMeteor]);
 
   // スライド完了後にprevIndexをクリア
   useEffect(() => {
@@ -150,12 +205,14 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
             <HoverPreview
               node={currentNode}
               page={currentPage}
-              onToggleRoutine={onToggleRoutine}
-              darkMode={darkMode}
+              onToggleRoutine={handleToggleRoutine}
               fontSize="medium"
               textColor="white"
             />
           )}
+
+          {/* 流れ星エフェクト */}
+          <MeteorEffect meteors={meteors} />
         </div>
       </div>
 
