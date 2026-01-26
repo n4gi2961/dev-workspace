@@ -16,6 +16,7 @@ interface DraggableImageNodeProps {
   onDelete: (nodeId: string) => void;
   onOpenEditor: (nodeId: string) => void;
   pages: any;
+  nodeRoutines?: any[];  // ★ useRoutines経由のルーティン一覧
   onToggleRoutine: (nodeId: string, routineId: string, date: string) => void;
   darkMode: boolean;
   isSelected: boolean;
@@ -24,7 +25,7 @@ interface DraggableImageNodeProps {
   isFullscreenMode?: boolean;
 }
 
-export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pages, onToggleRoutine, darkMode, isSelected, onSelect, zoom, isFullscreenMode = false }: DraggableImageNodeProps) => {
+export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pages, nodeRoutines, onToggleRoutine, darkMode, isSelected, onSelect, zoom, isFullscreenMode = false }: DraggableImageNodeProps) => {
   const t = useTranslations('node.image');
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -338,8 +339,8 @@ export const DraggableImageNode = ({ node, onUpdate, onDelete, onOpenEditor, pag
           <HoverPreview
             node={node}
             page={page}
+            nodeRoutines={nodeRoutines}
             onToggleRoutine={onToggleRoutine}
-            darkMode={darkMode}
             fontSize={hoverFontSize}
             textColor={hoverTextColor}
           />

@@ -108,10 +108,12 @@
   },
   "pageEditor": {
     "titlePlaceholder": "目标标题",
+    "changeImage": "更换图片",
     "tabs": {
       "overview": "概述",
       "milestones": "里程碑",
       "routines": "日常习惯",
+      "frozen": "冻结日",
       "data": "数据"
     },
     "category": {
@@ -139,15 +141,26 @@
     },
     "routines": {
       "todayTitle": "今日习惯",
-      "streakLabel": "坚持率（30天）",
+      "streakLabel": "坚持分数",
       "description": "管理日常习惯。点击颜色可更改，拖拽可排序。",
       "thisWeek": "本周",
-      "addPlaceholder": "添加新习惯..."
+      "addPlaceholder": "添加新习惯...",
+      "shareFromOther": "从其他目标共享",
+      "sharePanel": {
+        "title": "共享习惯",
+        "noOtherGoals": "其他目标中没有习惯",
+        "done": "完成"
+      }
+    },
+    "frozen": {
+      "description": "设置冻结日后，当天的清晰度不会下降。可用于旅行、生病等无法执行习惯的日子。",
+      "hint": "选择日期添加冻结日",
+      "empty": "尚未设置冻结日"
     }
   },
   "hoverPreview": {
-    "todayRoutines": "今日待办",
-    "milestones": "成长之路",
+    "todayRoutines": "今日可做之事",
+    "milestones": "通往成功之路",
     "editHint": "双击编辑"
   },
   "calendar": {
@@ -158,7 +171,11 @@
     "milestoneAchieved": "里程碑达成日"
   },
   "routineTable": {
-    "task": "任务"
+    "task": "任务",
+    "activeDays": {
+      "edit": "设置执行日",
+      "done": "完成"
+    }
   },
   "export": {
     "title": "导出为壁纸",

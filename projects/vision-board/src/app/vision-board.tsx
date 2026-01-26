@@ -30,9 +30,11 @@ import { Block } from '@/components/features/Block';
 import { PageEditor } from '@/components/features/PageEditor';
 import { useNodes, Node } from '@/hooks/useNodes';
 import { usePages } from '@/hooks/usePages';
+import { useRoutines } from '@/hooks/useRoutines';
 import { uploadImage } from '@/lib/supabase/storage';
 import { createClient } from '@/lib/supabase/client';
 import { createInitialPage as createEmptyPage, Page } from '@/lib/pageMapper';
+import { useClearPercent } from '@/hooks/useClearPercent';
 import { domToPng } from 'modern-screenshot';
 
 // 画面幅に応じた初期ズーム値を計算
@@ -54,6 +56,7 @@ interface VisionBoardProps {
 export default function VisionBoard({ boardId, userId, onFullscreenChange }: VisionBoardProps) {
   const t = useTranslations('board');
   const tHints = useTranslations('hints');
+  const tCommon = useTranslations('common');
   const [darkMode, setDarkMode] = useState(true);
   // ✅ Supabaseクライアント（useMemoでキャッシュ）
   const supabase = useMemo(() => createClient(), []);
@@ -75,9 +78,61 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     updatePageLocal,
     deletePage: deletePageFromHook,
     saveMilestones,
-    saveRoutines,
+    // saveRoutinesは削除（useRoutinesで管理）
+    addFrozenDate,
+    removeFrozenDate,
     loading: pagesLoading
   } = usePages(userId);
+
+  // ✅ useRoutinesフックを使用（ルーティン共有機能用）
+  const {
+    routines,
+    routineNodes,
+    getRoutinesForNode,
+    toggleRoutineCheck,
+    createRoutine,
+    addRoutineToNode,
+    removeRoutineFromNode,
+    deleteRoutine,
+    updateRoutineTitle,
+    updateRoutineColor,
+    updateRoutineActiveDays,
+    reorderRoutinesInNode,
+    loading: routinesLoading,
+  } = useRoutines(boardId || null, userId || null);
+
+  // ✅ clearPercent計算フック
+  const { calculateAfterToggle, recalculate } = useClearPercent();
+
+  // ✅ 無題番号付け関数（多言語対応）
+  const getNextUntitledTitle = useCallback(() => {
+    const untitledBase = tCommon('untitled'); // 「無題」「Untitled」等
+    // 各言語の「無題」パターンを検出
+    const patterns = [
+      /^無題(?:\((\d+)\))?$/,
+      /^Untitled(?:\((\d+)\))?$/i,
+      /^Sin título(?:\((\d+)\))?$/i,
+      /^제목 없음(?:\((\d+)\))?$/,
+      /^无标题(?:\((\d+)\))?$/,
+    ];
+
+    let maxNum = -1;
+
+    Object.values(pages).forEach(page => {
+      if (!page.title) return;
+      for (const pattern of patterns) {
+        const match = page.title.match(pattern);
+        if (match) {
+          const num = match[1] ? parseInt(match[1]) : 0;
+          maxNum = Math.max(maxNum, num);
+          break;
+        }
+      }
+    });
+
+    return maxNum < 0 ? untitledBase : `${untitledBase}(${maxNum + 1})`;
+  }, [pages, tCommon]);
+
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   // ✅ ヒント表示状態（null = 読み込み中）
@@ -421,7 +476,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   }, [isPanning, settingsLoaded, isFullscreenMode]);  // ✅ isFullscreenMode追加
 
   // ✅ 非同期でSupabaseに保存
-  const addImageNode = async (src: string) => {
+  const addImageNode = async (src: string, imgWidth: number, imgHeight: number) => {
     const container = containerRef.current;
     const scrollLeft = container?.scrollLeft || 0;
     const scrollTop = container?.scrollTop || 0;
@@ -436,10 +491,10 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     const newNode = {
       type: NODE_TYPES.IMAGE as 'image',
       src,
-      x: (centerX - 125 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
-      y: (centerY - 90 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
-      width: 250,
-      height: 180,
+      x: (centerX - imgWidth / 2 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
+      y: (centerY - imgHeight / 2 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
+      width: imgWidth,
+      height: imgHeight,
       shape: IMAGE_SHAPES.FREE,
       hoverFontSize: HOVER_FONT_SIZES.MEDIUM,
       hoverTextColor: HOVER_TEXT_COLORS.WHITE,
@@ -448,8 +503,11 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     // ✅ Supabaseに保存（IDはSupabaseが生成）
     const savedNode = await addNodeToHook(newNode);
     if (savedNode) {
-      // ✅ ページもSupabaseに保存
-      const initialPage = createEmptyPage();
+      // ✅ ページもSupabaseに保存（無題番号付け）
+      const initialPage = {
+        ...createEmptyPage(),
+        title: getNextUntitledTitle(),
+      };
       updatePageLocal(savedNode.id, initialPage);
       savePage(savedNode.id, initialPage);
     }
@@ -483,7 +541,34 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     try {
       // ✅ Storageにアップロードして公開URLを取得
       const imageUrl = await uploadImage(file, userId, boardId);
-      addImageNode(imageUrl);
+
+      // ✅ 画像の実際のサイズを取得してアスペクト比を維持
+      const img = new Image();
+      img.onload = () => {
+        const MAX_SIZE = 600;
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
+
+        let width: number;
+        let height: number;
+
+        if (naturalWidth >= naturalHeight) {
+          // 横長または正方形: 幅を600pxに
+          width = MAX_SIZE;
+          height = Math.round((naturalHeight / naturalWidth) * MAX_SIZE);
+        } else {
+            // 縦長: 高さを600pxに
+          height = MAX_SIZE;
+          width = Math.round((naturalWidth / naturalHeight) * MAX_SIZE);
+        }
+
+        addImageNode(imageUrl, width, height);
+      };
+      img.onerror = () => {
+        // 読み込み失敗時はデフォルトサイズ
+        addImageNode(imageUrl, 600, 400);
+      };
+      img.src = imageUrl;
     } catch (err) {
       console.error('Image upload failed:', err);
       alert(t('uploadFailed'));
@@ -511,42 +596,46 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
     updatePageLocal(editingPageId, pageData);
     // ✅ Supabaseに保存
     savePage(editingPageId, pageData);
-    // ✅ マイルストーン・ルーティンも保存
+    // ✅ マイルストーンを保存
     if (pageData.milestones) {
       saveMilestones(editingPageId, pageData.milestones);
     }
-    if (pageData.routines) {
-      saveRoutines(editingPageId, pageData.routines);
-    }
+    // ★ routinesはPageEditorからuseRoutines経由で直接操作するため、ここでは保存しない
   };
 
-  const handleToggleRoutine = (nodeId: string, routineId: string, date: string) => {
-    const page = pages[nodeId];
-    if (!page) return;
+  // ★ useRoutines経由でルーティンチェックを更新
+  const handleToggleRoutine = async (nodeId: string, routineId: string, date: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    const routine = routines[routineId];
+    if (!node || !routine) return;
 
     // チェック状態を取得
-    const routine = page.routines?.find(r => r.id === routineId);
-    const wasChecked = routine?.history?.[date] || false;
+    const wasChecked = routine.history?.[date] || false;
     const willBeChecked = !wasChecked;
 
     // チェックされた場合、その習慣の色を記録（Star Stack用）
-    if (willBeChecked && routine?.color) {
+    if (willBeChecked && routine.color) {
       setPendingStarColors(prev => [...prev, routine.color]);
     }
 
-    const routines = (page.routines || []).map(r => {
-      if (r.id === routineId) {
-        const newHistory = { ...r.history };
-        newHistory[date] = !newHistory[date];
-        return { ...r, history: newHistory };
-      }
-      return r;
-    });
+    // ✅ useRoutines経由でDB更新（楽観的更新も含む）
+    await toggleRoutineCheck(routineId, date);
 
-    // ✅ ローカル更新（楽観的更新）
-    updatePageLocal(nodeId, { ...page, routines, updatedAt: Date.now() });
-    // ✅ Supabaseに保存
-    saveRoutines(nodeId, routines);
+    // ✅ clearPercent再計算
+    const nodeRoutines = getRoutinesForNode(nodeId);
+    const page = pages[nodeId];
+    if (nodeRoutines.length > 0 && page) {
+      const currentClearPercent = node.clearPercent ?? 0;
+      const newClearPercent = calculateAfterToggle(
+        currentClearPercent,
+        nodeRoutines,
+        page.frozenDates || [],
+        routineId,
+        date,
+        willBeChecked
+      );
+      updateNodeInHook({ ...node, clearPercent: newClearPercent });
+    }
   };
 
   // ✅ ページエディタを開く（データをロード）
@@ -762,6 +851,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
                 onDelete={deleteNode}
                 onOpenEditor={handleOpenEditor}
                 pages={pages}
+                nodeRoutines={getRoutinesForNode(node.id)}
                 onToggleRoutine={handleToggleRoutine}
                 darkMode={darkMode}
                 isSelected={selectedNode === node.id}
@@ -829,6 +919,31 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
           onClose={() => setEditingPageId(null)}
           darkMode={darkMode}
           onRoutineChecked={(color) => setPendingStarColors(prev => [...prev, color])}
+          nodeId={editingPageId}
+          userId={userId}
+          boardId={boardId}
+          onImageChange={(newUrl) => {
+            const node = nodes.find(n => n.id === editingPageId);
+            if (node) {
+              updateNodeInHook({ ...node, src: newUrl });
+            }
+          }}
+          onAddFrozenDate={(date) => editingPageId && addFrozenDate(editingPageId, date)}
+          onRemoveFrozenDate={(date) => editingPageId && removeFrozenDate(editingPageId, date)}
+          clearPercent={editingNode?.clearPercent ?? 0}
+          // ルーティン共有機能用（useRoutines経由）
+          routines={routines}
+          routineNodes={routineNodes}
+          pages={pages}
+          nodes={nodes}
+          onCreateRoutine={(title) => editingPageId && createRoutine(title, editingPageId)}
+          onDeleteRoutine={(routineId) => editingPageId && removeRoutineFromNode(routineId, editingPageId)}
+          onToggleRoutine={toggleRoutineCheck}
+          onUpdateRoutineColor={updateRoutineColor}
+          onUpdateRoutineTitle={updateRoutineTitle}
+          onUpdateActiveDays={updateRoutineActiveDays}
+          onReorderRoutines={(from, to) => editingPageId && reorderRoutinesInNode(editingPageId, from, to)}
+          onAddRoutineToNode={(routineId) => editingPageId && addRoutineToNode(routineId, editingPageId)}
         />
       )}
 
@@ -892,6 +1007,9 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
         <AmbientMode
           nodes={nodes}
           pages={pages}
+          routines={routines}
+          routineNodes={routineNodes}
+          getRoutinesForNode={getRoutinesForNode}
           onToggleRoutine={handleToggleRoutine}
           darkMode={darkMode}
           onClose={() => setShowAmbientMode(false)}

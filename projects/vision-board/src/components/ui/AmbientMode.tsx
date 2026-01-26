@@ -11,18 +11,24 @@ import { getTodayString } from '@/lib/utils';
 interface AmbientModeProps {
   nodes: any[];
   pages: Record<string, any>;
+  routines?: Record<string, any>;  // ★ useRoutines経由のルーティン一覧
+  routineNodes?: any[];  // ★ ルーティンとノードの関連
+  getRoutinesForNode?: (nodeId: string) => any[];  // ★ ノードのルーティン取得関数
   onToggleRoutine: (nodeId: string, routineId: string, date: string) => void;
   darkMode: boolean;
   onClose: () => void;
 }
 
-export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }: AmbientModeProps) => {
+export const AmbientMode = ({ nodes, pages, routines, routineNodes, getRoutinesForNode, onToggleRoutine, darkMode, onClose }: AmbientModeProps) => {
   const t = useTranslations('ambientMode');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [slideDirection, setSlideDirection] = useState<'up' | 'down' | null>(null);
   const [isShowingDetails, setIsShowingDetails] = useState(false);
   const lastWheelTime = useRef(0);
+
+  // 画像の実際の表示サイズを保持
+  const [imageDisplaySize, setImageDisplaySize] = useState<{ width: number; height: number } | null>(null);
 
   // シャッフル結果をキャッシュ（ノードIDが変わらない限り再計算しない）
   const shuffledNodesRef = useRef<any[]>([]);
@@ -53,29 +59,26 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
   // Wrap onToggleRoutine to trigger meteor on check (5% chance for dopamine effect)
   const METEOR_CHANCE = 0.05; // 5% probability
   const handleToggleRoutine = useCallback((nodeId: string, routineId: string, date: string) => {
-    // Check if this is a check (not uncheck) by looking at current state
-    const page = pages[nodeId];
-    if (page) {
-      const routine = page.routines?.find((r: any) => r.id === routineId);
-      if (routine && !routine.history?.[date]) {
-        // This is a check action - trigger meteor with 5% probability
-        const isMeteor = Math.random() < METEOR_CHANCE;
-        if (isMeteor) {
-          triggerMeteor(routine.color || '#8b5cf6');
-          // Strong haptic feedback for meteor (pattern: vibrate-pause-vibrate)
-          if (navigator.vibrate) {
-            navigator.vibrate([50, 30, 80]);
-          }
-        } else {
-          // Normal haptic feedback
-          if (navigator.vibrate) {
-            navigator.vibrate(25);
-          }
+    // ★ useRoutines経由のroutinesを優先使用
+    const routine = routines?.[routineId];
+    if (routine && !routine.history?.[date]) {
+      // This is a check action - trigger meteor with 5% probability
+      const isMeteor = Math.random() < METEOR_CHANCE;
+      if (isMeteor) {
+        triggerMeteor(routine.color || '#8b5cf6');
+        // Strong haptic feedback for meteor (pattern: vibrate-pause-vibrate)
+        if (navigator.vibrate) {
+          navigator.vibrate([50, 30, 80]);
+        }
+      } else {
+        // Normal haptic feedback
+        if (navigator.vibrate) {
+          navigator.vibrate(25);
         }
       }
     }
     onToggleRoutine(nodeId, routineId, date);
-  }, [pages, onToggleRoutine, triggerMeteor]);
+  }, [routines, onToggleRoutine, triggerMeteor]);
 
   // スライド完了後にprevIndexをクリア
   useEffect(() => {
@@ -94,6 +97,7 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
     setSlideDirection('up');
     setCurrentIndex(prev => (prev + 1) % imageNodes.length);
     setIsShowingDetails(false);
+    setImageDisplaySize(null);
   }, [currentIndex, imageNodes.length]);
 
   const goToPrev = useCallback(() => {
@@ -102,7 +106,37 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
     setSlideDirection('down');
     setCurrentIndex(prev => (prev - 1 + imageNodes.length) % imageNodes.length);
     setIsShowingDetails(false);
+    setImageDisplaySize(null);
   }, [currentIndex, imageNodes.length]);
+
+  // 画像の表示サイズを計算
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
+
+    // 95vw x 95vh の領域に収まる表示サイズを計算
+    const containerWidth = window.innerWidth * 0.95;
+    const containerHeight = window.innerHeight * 0.95;
+
+    const imageAspect = naturalWidth / naturalHeight;
+    const containerAspect = containerWidth / containerHeight;
+
+    let displayWidth: number;
+    let displayHeight: number;
+
+    if (imageAspect > containerAspect) {
+      // 横長画像：横幅に合わせる
+      displayWidth = containerWidth;
+      displayHeight = containerWidth / imageAspect;
+    } else {
+      // 縦長画像：縦幅に合わせる
+      displayHeight = containerHeight;
+      displayWidth = containerHeight * imageAspect;
+    }
+
+    setImageDisplaySize({ width: displayWidth, height: displayHeight });
+  }, []);
 
   // キーボードイベント（Escape、上下矢印）
   useEffect(() => {
@@ -174,7 +208,7 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
             <img
               src={prevNode.src}
               alt="Vision"
-              className="max-w-[95vw] max-h-[95vh] object-contain rounded-xl shadow-2xl"
+              className="w-[95vw] h-[95vh] object-contain rounded-xl shadow-2xl"
             />
           </div>
         )}
@@ -187,6 +221,9 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
             setIsShowingDetails(prev => !prev);
           }}
           style={{
+            // 通常時: 95vw x 95vh、クリック時: 計算された画像サイズ
+            width: isShowingDetails && imageDisplaySize ? imageDisplaySize.width : '95vw',
+            height: isShowingDetails && imageDisplaySize ? imageDisplaySize.height : '95vh',
             animation: slideDirection
               ? slideDirection === 'up'
                 ? 'slideInFromBottom 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards'
@@ -197,7 +234,8 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
           <img
             src={currentNode.src}
             alt="Vision"
-            className="max-w-[95vw] max-h-[95vh] object-contain rounded-xl shadow-2xl"
+            className="w-full h-full object-contain rounded-xl shadow-2xl"
+            onLoad={handleImageLoad}
           />
 
           {/* クリック時のルーティン表示 */}
@@ -205,6 +243,7 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
             <HoverPreview
               node={currentNode}
               page={currentPage}
+              nodeRoutines={getRoutinesForNode?.(currentNode.id)}
               onToggleRoutine={handleToggleRoutine}
               fontSize="medium"
               textColor="white"
@@ -229,6 +268,7 @@ export const AmbientMode = ({ nodes, pages, onToggleRoutine, darkMode, onClose }
                   setSlideDirection(idx > currentIndex ? 'up' : 'down');
                   setCurrentIndex(idx);
                   setIsShowingDetails(false);
+                  setImageDisplaySize(null);
                 }
               }}
               className={`w-1.5 rounded-full transition-all ${

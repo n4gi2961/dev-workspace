@@ -90,10 +90,10 @@ export const TextToolbar = ({ node, onUpdate, darkMode }: TextToolbarProps) => {
           style={{ backgroundColor: node.color || (darkMode ? '#ffffff' : '#000000') }}
         />
         {showColors && (
-          <div className={`absolute top-full right-0 mt-1 p-2 rounded-lg shadow-xl ${
+          <div className={`absolute top-full left-0 mt-1 p-2 rounded-lg shadow-xl z-[100] ${
             darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
           }`}>
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-5 gap-1 min-w-[140px]">
               {colorOptions.map(color => (
                 <button
                   key={color}

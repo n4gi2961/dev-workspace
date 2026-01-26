@@ -13,6 +13,7 @@ export interface Page {
   blocks: Block[]
   milestones: Milestone[]
   routines: Routine[]
+  frozenDates?: FrozenDate[]  // 凍結日リスト
   updatedAt?: number
 }
 
@@ -33,9 +34,25 @@ export interface Milestone {
 
 export interface Routine {
   id: string
+  boardId: string  // ボードに紐づく
   title: string
   color: string
   history: Record<string, boolean>
+  createdAt?: string  // ルーティン作成日（ISO 8601形式）
+  activeDays?: number[]  // 実行する曜日 (0=日曜, 1=月曜, ..., 6=土曜)。undefinedは毎日実行
+}
+
+// ノードとルーティンの関連（中間テーブル）
+export interface RoutineNode {
+  id: string
+  routineId: string
+  nodeId: string
+  sortOrder: number
+}
+
+export interface FrozenDate {
+  id: string
+  date: string  // YYYY-MM-DD形式
 }
 
 // Supabaseのpagesテーブルの型
@@ -76,12 +93,13 @@ export function pageToSupabase(
 
 /**
  * Supabase形式 → TypeScript Pageに変換
- * （milestonesとroutinesは別途取得して結合する）
+ * （milestones, routines, frozenDatesは別途取得して結合する）
  */
 export function supabaseToPage(
   data: SupabasePage,
   milestones: Milestone[] = [],
-  routines: Routine[] = []
+  routines: Routine[] = [],
+  frozenDates: FrozenDate[] = []
 ): Page {
   return {
     title: data.title || '',
@@ -92,6 +110,7 @@ export function supabaseToPage(
     blocks: data.blocks || [],
     milestones,
     routines,
+    frozenDates,
     updatedAt: new Date(data.updated_at).getTime(),
   }
 }
@@ -106,5 +125,6 @@ export function createInitialPage(): Page {
     blocks: [],
     milestones: [],
     routines: [],
+    frozenDates: [],
   }
 }

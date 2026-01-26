@@ -108,10 +108,12 @@
   },
   "pageEditor": {
     "titlePlaceholder": "目標のタイトル",
+    "changeImage": "画像を変更",
     "tabs": {
       "overview": "概要",
       "milestones": "マイルストーン",
       "routines": "ルーティン",
+      "frozen": "凍結日",
       "data": "データ"
     },
     "category": {
@@ -139,15 +141,26 @@
     },
     "routines": {
       "todayTitle": "今日のルーティン",
-      "streakLabel": "継続率 (30日)",
+      "streakLabel": "継続スコア",
       "description": "日々の習慣を管理します。色をクリックして変更、ドラッグで並び替えできます。",
       "thisWeek": "今週",
-      "addPlaceholder": "新しいルーティンを追加..."
+      "addPlaceholder": "新しいルーティンを追加...",
+      "shareFromOther": "他の目標から共有",
+      "sharePanel": {
+        "title": "ルーティンを共有",
+        "noOtherGoals": "他の目標にルーティンがありません",
+        "done": "完了"
+      }
+    },
+    "frozen": {
+      "description": "凍結日に設定すると、その日はクリア度が下落しません。旅行や病気など、習慣を実行できない日に設定してください。",
+      "hint": "日付を選択して凍結日を追加",
+      "empty": "凍結日はまだ設定されていません"
     }
   },
   "hoverPreview": {
     "todayRoutines": "今日できること",
-    "milestones": "達成の道のり",
+    "milestones": "達成への道のり",
     "editHint": "ダブルクリックで編集"
   },
   "calendar": {
@@ -158,7 +171,11 @@
     "milestoneAchieved": "マイルストーン達成日"
   },
   "routineTable": {
-    "task": "タスク"
+    "task": "タスク",
+    "activeDays": {
+      "edit": "実行日を指定",
+      "done": "完了"
+    }
   },
   "export": {
     "title": "壁紙として出力",

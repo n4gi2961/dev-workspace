@@ -16,6 +16,7 @@ export interface Node {
   shape?: string
   hoverFontSize?: string
   hoverTextColor?: string
+  clearPercent?: number  // クリア度 0〜100（ブラー値計算用）
   // テキストノード専用
   content?: string
   fontSize?: number

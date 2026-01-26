@@ -2,9 +2,9 @@ import { HOVER_FONT_SIZES } from './types';
 
 // Hover font configuration
 export const HOVER_FONT_CONFIG = {
-  [HOVER_FONT_SIZES.SMALL]: { title: 14, text: 11, icon: 12, label: 10 },
-  [HOVER_FONT_SIZES.MEDIUM]: { title: 18, text: 14, icon: 16, label: 12 },
-  [HOVER_FONT_SIZES.LARGE]: { title: 22, text: 17, icon: 20, label: 14 },
+  [HOVER_FONT_SIZES.SMALL]: { title: 14, text: 13, icon: 12, label: 12 },
+  [HOVER_FONT_SIZES.MEDIUM]: { title: 18, text: 16, icon: 16, label: 14 },
+  [HOVER_FONT_SIZES.LARGE]: { title: 22, text: 19, icon: 20, label: 16 },
 };
 
 // Routine colors - vibrant but readable

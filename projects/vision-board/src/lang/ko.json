@@ -108,10 +108,12 @@
   },
   "pageEditor": {
     "titlePlaceholder": "목표 제목",
+    "changeImage": "이미지 변경",
     "tabs": {
       "overview": "개요",
       "milestones": "마일스톤",
       "routines": "루틴",
+      "frozen": "동결일",
       "data": "데이터"
     },
     "category": {
@@ -139,15 +141,26 @@
     },
     "routines": {
       "todayTitle": "오늘의 루틴",
-      "streakLabel": "지속률 (30일)",
+      "streakLabel": "지속 스코어",
       "description": "일상 습관을 관리합니다. 색상 클릭으로 변경, 드래그로 순서 변경.",
       "thisWeek": "이번 주",
-      "addPlaceholder": "새 루틴 추가..."
+      "addPlaceholder": "새 루틴 추가...",
+      "shareFromOther": "다른 목표에서 공유",
+      "sharePanel": {
+        "title": "루틴 공유",
+        "noOtherGoals": "다른 목표에 루틴이 없습니다",
+        "done": "완료"
+      }
+    },
+    "frozen": {
+      "description": "동결일로 설정하면 해당 날짜에 선명도가 하락하지 않습니다. 여행이나 질병 등 습관을 실행할 수 없는 날에 설정하세요.",
+      "hint": "날짜를 선택하여 동결일 추가",
+      "empty": "아직 동결일이 설정되지 않았습니다"
     }
   },
   "hoverPreview": {
-    "todayRoutines": "오늘 할 일",
-    "milestones": "달성의 여정",
+    "todayRoutines": "오늘 할 수 있는 것",
+    "milestones": "달성으로 가는 길",
     "editHint": "더블클릭하여 편집"
   },
   "calendar": {
@@ -158,7 +171,11 @@
     "milestoneAchieved": "마일스톤 달성일"
   },
   "routineTable": {
-    "task": "작업"
+    "task": "작업",
+    "activeDays": {
+      "edit": "요일 설정",
+      "done": "완료"
+    }
   },
   "export": {
     "title": "배경화면으로 내보내기",

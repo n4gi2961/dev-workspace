@@ -6,9 +6,10 @@ interface LiquidFillProgressProps {
   total?: number;
   darkMode: boolean;
   message?: string;
+  showUnit?: boolean;
 }
 
-export const LiquidFillProgress = ({ percentage, color, label, count, total, darkMode, message }: LiquidFillProgressProps) => {
+export const LiquidFillProgress = ({ percentage, color, label, count, total, darkMode, message, showUnit = true }: LiquidFillProgressProps) => {
   const gradients = {
     violet: 'from-violet-600 to-fuchsia-500',
     emerald: 'from-emerald-500 to-teal-400',
@@ -54,7 +55,7 @@ export const LiquidFillProgress = ({ percentage, color, label, count, total, dar
           {label}
         </p>
         <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-          {percentage}%
+          {percentage}{showUnit && '%'}
         </p>
         <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           {message || (total !== undefined ? `${count} / ${total} 完了` : '')}

@@ -63,3 +63,32 @@ export const getMonthDates = (year: number, month: number) => {
 };
 
 export const getDayLabel = (index: number) => ['月', '火', '水', '木', '金', '土', '日'][index];
+
+// 前日の日付文字列を取得
+export const getPreviousDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() - 1);
+  return formatLocalDate(date);
+};
+
+// 翌日の日付文字列を取得
+export const getNextDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + 1);
+  return formatLocalDate(date);
+};
+
+// 日付文字列から曜日インデックス（0=日曜〜6=土曜）を取得
+export const getDayOfWeekIndex = (dateString: string): number => {
+  return new Date(dateString).getDay();
+};
+
+// ルーティンがその日に実行予定かどうかを判定
+export const isRoutineActiveOnDate = (
+  routine: { activeDays?: number[] },
+  dateString: string
+): boolean => {
+  if (!routine.activeDays) return true;  // undefinedは毎日実行
+  const dayIndex = getDayOfWeekIndex(dateString);
+  return routine.activeDays.includes(dayIndex);
+};

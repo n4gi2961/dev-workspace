@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Page,
   SupabasePage,
+  FrozenDate,
   pageToSupabase,
   supabaseToPage,
   createInitialPage,
@@ -19,8 +20,9 @@ import {
  * 3. userIdは親から受け取る（useAuthを使わない）
  *
  * ★ 新スキーマ対応:
- * - pages, milestones, routines に user_id を含める
- * - milestones, routines は node_id を参照（page_id ではなく）
+ * - pages, milestones に user_id を含める
+ * - milestones は node_id を参照（page_id ではなく）
+ * - routines は useRoutines で管理（board_id + routine_nodes 中間テーブル）
  */
 export function usePages(userId?: string) {
   // ✅ 必須: useMemoでキャッシュ
@@ -60,12 +62,13 @@ export function usePages(userId?: string) {
         .eq('node_id', nodeId)
         .order('sort_order', { ascending: true })
 
-      // ★ routinesはnode_idで取得
-      const { data: routinesData } = await supabase
-        .from('routines')
+      // ★ routinesはuseRoutinesで管理（新スキーマ: board_id + routine_nodes）
+
+      // ★ frozenDatesはnode_idで取得
+      const { data: frozenDatesData } = await supabase
+        .from('frozen_dates')
         .select('*')
         .eq('node_id', nodeId)
-        .order('sort_order', { ascending: true })
 
       // 変換して返す
       const milestones = (milestonesData || []).map((m: { id: string; title: string; completed: boolean; completed_at?: string }) => ({
@@ -75,14 +78,14 @@ export function usePages(userId?: string) {
         completedAt: m.completed_at || undefined,
       }))
 
-      const routines = (routinesData || []).map((r: { id: string; title: string; color: string; history?: Record<string, boolean> }) => ({
-        id: r.id,
-        title: r.title,
-        color: r.color,
-        history: r.history || {},
+      // routinesはuseRoutinesで管理するため空配列を渡す
+
+      const frozenDates = (frozenDatesData || []).map((f: { id: string; date: string }) => ({
+        id: f.id,
+        date: f.date,
       }))
 
-      return supabaseToPage(pageData as SupabasePage, milestones, routines)
+      return supabaseToPage(pageData as SupabasePage, milestones, [], frozenDates)
     } catch (err) {
       console.error('Failed to load page:', err)
       return createInitialPage()
@@ -181,7 +184,7 @@ export function usePages(userId?: string) {
 
   /**
    * ページを削除
-   * ★ milestones, routines は node_id で削除
+   * ★ milestones, routines, frozen_dates は node_id で削除
    */
   const deletePage = useCallback(async (nodeId: string): Promise<boolean> => {
     if (!userId) return false
@@ -193,9 +196,11 @@ export function usePages(userId?: string) {
         .delete()
         .eq('node_id', nodeId)
 
-      // ★ routinesをnode_idで削除
+      // ★ routinesはuseRoutinesで管理（routine_nodesはCASCADEで削除される）
+
+      // ★ frozen_datesをnode_idで削除
       await supabase
-        .from('routines')
+        .from('frozen_dates')
         .delete()
         .eq('node_id', nodeId)
 
@@ -279,55 +284,87 @@ export function usePages(userId?: string) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])  // ✅ supabaseは入れない
 
+  // ★ saveRoutinesは削除（useRoutinesで管理）
+
   /**
-   * ルーティンを保存
-   * ★ node_id と user_id を使用
+   * 凍結日を追加
    */
-  const saveRoutines = useCallback(async (
+  const addFrozenDate = useCallback(async (
     nodeId: string,
-    routines: Page['routines']
+    date: string
   ): Promise<boolean> => {
     if (!userId) return false
 
     try {
-      // ★ 既存のroutinesをnode_idで削除
-      await supabase
-        .from('routines')
-        .delete()
-        .eq('node_id', nodeId)
-
-      if (routines.length > 0) {
-        // ★ node_id と user_id を含める
-        const routinesData = routines.map((r, index) => ({
-          id: r.id,
-          node_id: nodeId,
-          user_id: userId,
-          title: r.title,
-          color: r.color,
-          history: r.history,
-          sort_order: index,
-        }))
-
-        const { error } = await supabase
-          .from('routines')
-          .insert(routinesData)
-
-        if (error) throw error
+      const newFrozenDate = {
+        node_id: nodeId,
+        user_id: userId,
+        date: date,
       }
 
+      const { data, error } = await supabase
+        .from('frozen_dates')
+        .insert(newFrozenDate)
+        .select()
+        .single()
+
+      if (error) throw error
+
       // ローカルステートを更新
-      setPages(prev => ({
-        ...prev,
-        [nodeId]: {
-          ...createInitialPage(),
-          ...prev[nodeId],
-          routines,
+      setPages(prev => {
+        const currentPage = prev[nodeId] || createInitialPage()
+        const currentFrozenDates = currentPage.frozenDates || []
+        return {
+          ...prev,
+          [nodeId]: {
+            ...currentPage,
+            frozenDates: [...currentFrozenDates, { id: data.id, date: date }],
+          }
         }
-      }))
+      })
 
       return true
     } catch (err) {
-      console.error('Failed to save routines:', err)
+      console.error('Failed to add frozen date:', err)
+      return false
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])  // ✅ supabaseは入れない
+
+  /**
+   * 凍結日を削除
+   */
+  const removeFrozenDate = useCallback(async (
+    nodeId: string,
+    date: string
+  ): Promise<boolean> => {
+    if (!userId) return false
+
+    try {
+      const { error } = await supabase
+        .from('frozen_dates')
+        .delete()
+        .eq('node_id', nodeId)
+        .eq('date', date)
+
+      if (error) throw error
+
+      // ローカルステートを更新
+      setPages(prev => {
+        const currentPage = prev[nodeId] || createInitialPage()
+        const currentFrozenDates = currentPage.frozenDates || []
+        return {
+          ...prev,
+          [nodeId]: {
+            ...currentPage,
+            frozenDates: currentFrozenDates.filter(f => f.date !== date),
+          }
+        }
+      })
+
+      return true
+    } catch (err) {
+      console.error('Failed to remove frozen date:', err)
       return false
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -346,6 +383,8 @@ export function usePages(userId?: string) {
     updatePageLocal,
     deletePage,
     saveMilestones,
-    saveRoutines,
+    // saveRoutinesは削除（useRoutinesで管理）
+    addFrozenDate,
+    removeFrozenDate,
   }
 }

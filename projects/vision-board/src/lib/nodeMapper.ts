@@ -23,6 +23,7 @@ export interface SupabaseNode {
   font_size: number | null
   color: string | null
   font_family: string | null
+  clear_percent: number | null  // クリア度 0〜100
   created_at: string
   updated_at: string
 }
@@ -51,6 +52,7 @@ export function nodeToSupabase(
     font_size: node.fontSize || null,
     color: node.color || null,
     font_family: node.fontFamily || null,
+    clear_percent: node.clearPercent ?? 0,  // クリア度
   }
 
   // IDがある場合のみ含める（新規作成時はSupabaseが自動生成）
@@ -80,5 +82,6 @@ export function supabaseToNode(data: SupabaseNode): Node {
     fontSize: data.font_size || undefined,
     color: data.color || undefined,
     fontFamily: data.font_family || undefined,
+    clearPercent: data.clear_percent ?? 0,  // クリア度
   }
 }

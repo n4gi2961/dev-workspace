@@ -108,10 +108,12 @@
   },
   "pageEditor": {
     "titlePlaceholder": "Título del objetivo",
+    "changeImage": "Cambiar imagen",
     "tabs": {
       "overview": "Resumen",
       "milestones": "Hitos",
       "routines": "Rutinas",
+      "frozen": "Días congelados",
       "data": "Datos"
     },
     "category": {
@@ -139,15 +141,26 @@
     },
     "routines": {
       "todayTitle": "Rutinas de hoy",
-      "streakLabel": "Consistencia (30 días)",
+      "streakLabel": "Puntuación",
       "description": "Gestiona hábitos diarios. Clic en color para cambiar, arrastra para reordenar.",
       "thisWeek": "Esta semana",
-      "addPlaceholder": "Añadir nueva rutina..."
+      "addPlaceholder": "Añadir nueva rutina...",
+      "shareFromOther": "Compartir de otras metas",
+      "sharePanel": {
+        "title": "Compartir rutinas",
+        "noOtherGoals": "No hay rutinas en otras metas",
+        "done": "Hecho"
+      }
+    },
+    "frozen": {
+      "description": "Los días congelados evitan que la claridad disminuya. Úsalos para días en que no puedas practicar hábitos (viajes, enfermedad, etc.).",
+      "hint": "Selecciona una fecha para añadir un día congelado",
+      "empty": "No hay días congelados configurados"
     }
   },
   "hoverPreview": {
-    "todayRoutines": "Tareas de hoy",
-    "milestones": "Camino al logro",
+    "todayRoutines": "Lo que puedes hacer hoy",
+    "milestones": "Camino hacia el logro",
     "editHint": "Doble clic para editar"
   },
   "calendar": {
@@ -158,7 +171,11 @@
     "milestoneAchieved": "Hito alcanzado"
   },
   "routineTable": {
-    "task": "Tarea"
+    "task": "Tarea",
+    "activeDays": {
+      "edit": "Establecer Días",
+      "done": "Listo"
+    }
   },
   "export": {
     "title": "Exportar como fondo",

@@ -108,10 +108,12 @@
   },
   "pageEditor": {
     "titlePlaceholder": "Goal title",
+    "changeImage": "Change image",
     "tabs": {
       "overview": "Overview",
       "milestones": "Milestones",
       "routines": "Routines",
+      "frozen": "Frozen Days",
       "data": "Data"
     },
     "category": {
@@ -139,14 +141,25 @@
     },
     "routines": {
       "todayTitle": "Today's Routines",
-      "streakLabel": "Consistency (30 days)",
+      "streakLabel": "Consistency Score",
       "description": "Manage daily habits. Click color to change, drag to reorder.",
       "thisWeek": "This Week",
-      "addPlaceholder": "Add new routine..."
+      "addPlaceholder": "Add new routine...",
+      "shareFromOther": "Share from other goals",
+      "sharePanel": {
+        "title": "Share Routines",
+        "noOtherGoals": "No routines in other goals",
+        "done": "Done"
+      }
+    },
+    "frozen": {
+      "description": "Frozen days prevent clarity from decreasing. Set them for days you can't practice habits (travel, illness, etc.).",
+      "hint": "Select a date to add a frozen day",
+      "empty": "No frozen days set"
     }
   },
   "hoverPreview": {
-    "todayRoutines": "Today's Tasks",
+    "todayRoutines": "What You Can Do Today",
     "milestones": "Path to Achievement",
     "editHint": "Double-click to edit"
   },
@@ -158,7 +171,11 @@
     "milestoneAchieved": "Milestone achieved"
   },
   "routineTable": {
-    "task": "Task"
+    "task": "Task",
+    "activeDays": {
+      "edit": "Set Days",
+      "done": "Done"
+    }
   },
   "export": {
     "title": "Export as Wallpaper",

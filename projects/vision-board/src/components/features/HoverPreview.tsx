@@ -5,7 +5,7 @@ import { Square, Check, Target } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { HOVER_FONT_CONFIG } from '@/constants/styles';
 import { HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
-import { getTodayString } from '@/lib/utils';
+import { getTodayString, isRoutineActiveOnDate } from '@/lib/utils';
 import { FourPointStar } from '@/components/ui/FourPointStar';
 import { usePopAnimationMap } from '@/hooks/usePopAnimation';
 import { useClearPercent } from '@/hooks/useClearPercent';
@@ -15,12 +15,13 @@ import { BlurRippleEffect } from '@/components/ui/BlurRippleEffect';
 interface HoverPreviewProps {
   node: any;
   page: any;
+  nodeRoutines?: any[];  // ★ useRoutines経由のルーティン一覧
   onToggleRoutine: (nodeId: string, routineId: string, date: string) => void;
   fontSize: string;
   textColor: string;
 }
 
-export const HoverPreview = ({ node, page, onToggleRoutine, fontSize, textColor }: HoverPreviewProps) => {
+export const HoverPreview = ({ node, page, nodeRoutines, onToggleRoutine, fontSize, textColor }: HoverPreviewProps) => {
   const t = useTranslations('hoverPreview');
   const tCommon = useTranslations('common');
   const todayString = getTodayString();
@@ -39,13 +40,18 @@ export const HoverPreview = ({ node, page, onToggleRoutine, fontSize, textColor 
   // ルーティンが0個の場合はブラー0px
   const { getBlurValue, calculateAfterToggle } = useClearPercent();
   const clearPercent = node.clearPercent ?? 0;
-  const hasRoutines = (page.routines || []).length > 0;
+  // ★ nodeRoutinesを優先使用（useRoutines経由）、なければpage.routinesにフォールバック
+  const routinesList = nodeRoutines || page.routines || [];
+  const hasRoutines = routinesList.length > 0;
   const blurValue = hasRoutines ? getBlurValue(clearPercent) : 0;
 
-  const todayRoutines = (page.routines || []).map((r: any) => ({
-    ...r,
-    todayChecked: r.history?.[todayString] || false,
-  }));
+  // 今日が実行日のルーティンのみをフィルタリング
+  const todayRoutines = routinesList
+    .filter((r: any) => isRoutineActiveOnDate(r, todayString))
+    .map((r: any) => ({
+      ...r,
+      todayChecked: r.history?.[todayString] || false,
+    }));
 
   const allMilestones = page.milestones || [];
 
@@ -154,9 +160,7 @@ export const HoverPreview = ({ node, page, onToggleRoutine, fontSize, textColor 
               {allMilestones.map((milestone: any) => (
                 <div
                   key={milestone.id}
-                  className={`flex items-center gap-2 px-1 py-0.5 ${
-                    milestone.completed ? 'opacity-50' : ''
-                  }`}
+                  className="flex items-center gap-2 px-1 py-0.5"
                 >
                   {milestone.completed ? (
                     <div
