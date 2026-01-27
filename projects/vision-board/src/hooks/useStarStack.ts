@@ -20,7 +20,7 @@ interface StarStackData {
 interface UseStarStackProps {
   userId?: string;
   boardId?: string;
-  pages: Record<string, Page>;
+  routines: Record<string, any>;  // ★ pagesではなくroutinesを受け取る  
   pendingStarColors?: string[];
 }
 
@@ -39,14 +39,9 @@ interface UseStarStackReturn {
 /**
  * Calculate total completed routines from all pages
  */
-function calculateTotalCompletedRoutines(pages: Record<string, Page>): number {
-  return Object.values(pages).reduce((count, page) => {
-    return (
-      count +
-      (page.routines || []).reduce((routineCount, routine) => {
-        return routineCount + Object.values(routine.history).filter(Boolean).length;
-      }, 0)
-    );
+function calculateTotalCompletedRoutines(routines: Record<string, any>): number {
+  return Object.values(routines).reduce((count, routine) => {
+    return count + Object.values(routine.history || {}).filter(Boolean).length;
   }, 0);
 }
 
@@ -78,7 +73,7 @@ function createStarInstance(index: number = 0, colorHex?: string): StarInstance 
 export function useStarStack({
   userId,
   boardId,
-  pages,
+  routines,
   pendingStarColors = [],
 }: UseStarStackProps): UseStarStackReturn {
   const supabase = useMemo(() => createClient(), []);
@@ -105,8 +100,8 @@ export function useStarStack({
 
   // Calculate current total completed routines
   const currentTotal = useMemo(
-    () => calculateTotalCompletedRoutines(pages),
-    [pages]
+    () => calculateTotalCompletedRoutines(routines),
+    [routines]
   );
 
   /**
@@ -246,8 +241,8 @@ export function useStarStack({
           setShowCork(true);
         }, corkShowDelay);
 
-        // Update Supabase (non-blocking, optimistic update already done)
-        supabase
+        // Update Supabase (await to ensure data is persisted before page unload)
+        const { error: updateError } = await supabase
           .from('star_stacking')
           .update({
             total_stars: updatedTotalStars,
@@ -256,12 +251,18 @@ export function useStarStack({
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId)
-          .eq('board_id', boardId)
-          .then(({ error: updateError }: { error: Error | null }) => {
-            if (updateError) {
-              console.error('Error updating star_stacking:', updateError);
-            }
+          .eq('board_id', boardId);
+
+        if (updateError) {
+          console.error('Error updating star_stacking:', updateError);
+          // Rollback optimistic update on error
+          setStarStackData({
+            totalStars: totalStars,
+            lastSyncedTotal: lastSyncedTotal,
+            colorCounts: colorCounts,
           });
+          setNewStarsCount(0);
+        }
       }
     } catch (err) {
       console.error('Error syncing star stack:', err);
@@ -308,7 +309,7 @@ export function useStarStack({
   return {
     stars,
     isLoading,
-    totalStars: starStackData.totalStars + newStarsCount,
+    totalStars: starStackData.totalStars,
     newStarsCount,
     showCork,
     addStar,
