@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, X, Type, ChevronRight, ChevronDown, CheckSquare, Square, Trash2, Moon, Sun, ImagePlus, Eye, EyeOff, ZoomIn, ZoomOut, Maximize, Minimize, Download, ChevronLeft, BarChart3, Target, Calendar, FileText, Check, Star, GripVertical, Sparkles, LogIn, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { BOARD_WIDTH, BOARD_HEIGHT } from '@/constants/board';
 import { BLOCK_TYPES, NODE_TYPES, IMAGE_SHAPES, HOVER_FONT_SIZES, HOVER_TEXT_COLORS } from '@/constants/types';
@@ -55,6 +56,7 @@ interface VisionBoardProps {
 // Main Vision Board Component
 export default function VisionBoard({ boardId, userId, onFullscreenChange }: VisionBoardProps) {
   const t = useTranslations('board');
+  const tAuth = useTranslations('auth');
   const tHints = useTranslations('hints');
   const tCommon = useTranslations('common');
   const [darkMode, setDarkMode] = useState(true);
@@ -164,7 +166,7 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
   } = useStarStack({
     userId,
     boardId,
-    pages,
+    routines,
     pendingStarColors,
   });
 
@@ -477,22 +479,34 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
 
   // ✅ 非同期でSupabaseに保存
   const addImageNode = async (src: string, imgWidth: number, imgHeight: number) => {
-    const container = containerRef.current;
-    const scrollLeft = container?.scrollLeft || 0;
-    const scrollTop = container?.scrollTop || 0;
-    const containerWidth = container?.clientWidth || 800;
-    const containerHeight = container?.clientHeight || 600;
-
-    // Place new images near the center of the visible area
-    const centerX = scrollLeft + containerWidth / 2;
-    const centerY = scrollTop + containerHeight / 2;
-
     const currentZoom = zoom ?? 70;
+    const isFirstImage = nodes.length === 0;
+
+    let x: number;
+    let y: number;
+
+    if (isFirstImage) {
+      // 1枚目: ボード中央に配置（ランダムオフセットなし）
+      x = BOARD_WIDTH / 2 - imgWidth / 2;
+      y = BOARD_HEIGHT / 2 - imgHeight / 2;
+    } else {
+      // 2枚目以降: ビューポート中央付近にランダム配置
+      const container = containerRef.current;
+      const scrollLeft = container?.scrollLeft || 0;
+      const scrollTop = container?.scrollTop || 0;
+      const containerWidth = container?.clientWidth || 800;
+      const containerHeight = container?.clientHeight || 600;
+      const centerX = scrollLeft + containerWidth / 2;
+      const centerY = scrollTop + containerHeight / 2;
+      x = (centerX - imgWidth / 2 + (Math.random() - 0.5) * 200) / (currentZoom / 100);
+      y = (centerY - imgHeight / 2 + (Math.random() - 0.5) * 200) / (currentZoom / 100);
+    }
+
     const newNode = {
       type: NODE_TYPES.IMAGE as 'image',
       src,
-      x: (centerX - imgWidth / 2 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
-      y: (centerY - imgHeight / 2 + (Math.random() - 0.5) * 200) / (currentZoom / 100),
+      x,
+      y,
       width: imgWidth,
       height: imgHeight,
       shape: IMAGE_SHAPES.FREE,
@@ -775,6 +789,29 @@ export default function VisionBoard({ boardId, userId, onFullscreenChange }: Vis
               onChange={handleFileUpload}
               className="hidden"
             />
+            {!userId && (
+              <>
+                <Link
+                  href="/login"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                    darkMode
+                      ? 'bg-gray-800 hover:bg-gray-700 text-gray-200'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  <LogIn size={16} />
+                  <span className="hidden sm:inline">{tAuth('login.submit')}</span>
+                </Link>
+                <Link
+                  href="/signup"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all
+                    bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white"
+                >
+                  <UserPlus size={16} />
+                  <span className="hidden sm:inline">{tAuth('signup.submit')}</span>
+                </Link>
+              </>
+            )}
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-violet-500/25"
