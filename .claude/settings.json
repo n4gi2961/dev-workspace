@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "会話圧縮前の自動ログ保存タスク:\n\n1. フック入力の $ARGUMENTS から transcript_path を取得し、transcript.jsonl を読み込む\n2. /home/claude-code/.claude/log-config.json を読み込み、outputFolder と filenameFormat を取得\n3. /home/claude-code/.claude/commands/log.md に記載されたフォーマットに従い、会話内容から以下を抽出してマークダウンを生成:\n   - タイトル（主な作業内容を簡潔に）\n   - 日時、プロジェクト名\n   - 概要、実施内容、変更ファイル\n   - 技術的なポイント\n   - 問題と解決方法\n   - 次回TODO、メモ\n4. ファイル名を `date +\"%y%m%d_%H%M\"` 形式で生成し、`YYMMDD_HHmm タイトル.md` として保存\n5. Writeツールで outputFolder に保存\n6. 最後に必ず以下のJSON形式で返す: {\"ok\": true, \"reason\": \"ログを保存しました: [保存先パス]\"}\n\n重要: エラーが発生した場合も {\"ok\": true, \"reason\": \"エラー: [詳細]\"} を返し、圧縮をブロックしないこと。",
+            "timeout": 120,
+            "statusMessage": "AI開発ログを生成中..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '前回の会話は圧縮されました。開発ログが自動生成されている可能性があります。'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "or": "または",
+    "untitled": "無題",
+    "today": "今日",
+    "completed": "完了"
+  },
+  "auth": {
+    "login": {
+      "title": "Asterize にログイン",
+      "createAccount": "新規アカウント作成",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "submitting": "ログイン中...",
+      "submit": "ログイン",
+      "withGoogle": "Googleでログイン"
+    },
+    "signup": {
+      "title": "Asterize アカウント作成",
+      "hasAccount": "すでにアカウントをお持ちですか？",
+      "login": "ログイン",
+      "displayName": "表示名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "passwordPlaceholder": "パスワード（8文字以上）",
+      "passwordConfirm": "パスワード（確認）",
+      "submitting": "登録中...",
+      "submit": "アカウント作成",
+      "withGoogle": "Googleで登録",
+      "errors": {
+        "passwordMismatch": "パスワードが一致しません",
+        "passwordTooShort": "パスワードは8文字以上必要です",
+        "emailExists": "このメールアドレスは既に登録されています"
+      }
+    },
+    "logout": "ログアウト"
+  },
+  "boards": {
+    "title": "Asterize",
+    "listTitle": "ボード一覧",
+    "newBoard": "新規ボード",
+    "empty": "まだボードがありません",
+    "createFirst": "最初のボードを作成",
+    "editName": "ボード名を編集",
+    "deleteBoard": "このボードを削除",
+    "lastUpdated": "最終更新:",
+    "createSuccess": "ボードを作成しました",
+    "deleteSuccess": "ボードを削除しました",
+    "swipeToDelete": "左にスワイプで削除",
+    "offlineMode": "オフラインモード",
+    "pendingSync": "件の同期待ち",
+    "deleteModal": {
+      "title": "ボードを削除",
+      "message": "本当に削除してもよろしいですか？この操作は取り消せません。",
+      "confirm": "削除する"
+    },
+    "notFound": {
+      "title": "ボードが見つかりません",
+      "message": "指定されたボードは存在しないか、アクセス権限がありません",
+      "backToList": "ボード一覧に戻る"
+    }
+  },
+  "board": {
+    "titleShort": "Asterize",
+    "titleFull": "Asterize",
+    "addImage": "画像を追加",
+    "newBoardDefault": "新しいボード",
+    "loadingMessage": "Now Loading...",
+    "loadingQuote": "叶えたい未来を、目に見える場所に。",
+    "loadingDescription": "毎日見るたび、一歩ずつ近づいていく。",
+    "addFirstImage": "最初の画像を追加",
+    "uploadFailed": "画像のアップロードに失敗しました",
+    "zoom": {
+      "in": "ズームイン",
+      "out": "ズームアウト"
+    },
+    "screenshot": "スクリーンショット",
+    "exitFullscreen": "全画面終了",
+    "slideshow": "スライドショー",
+    "fullscreen": "全画面表示",
+    "backToList": "ボード一覧",
+    "focusMode": "フォーカスモード",
+    "fullscreenMode": "フルスクリーンモード",
+    "starStack": {
+      "title": "スタースタック",
+      "subtitle": "習慣の星コレクション",
+      "counter": "★ {count} / {max}",
+      "addStar": "星を追加",
+      "addBatch": "20個追加",
+      "autoAdd": "自動追加",
+      "stop": "停止",
+      "reset": "リセット",
+      "rotate": "ドラッグで回転",
+      "zoom": "スクロールでズーム",
+      "todayCompleted": "今日の完了: {count}件",
+      "emptyMessage": "習慣を完了して星を集めよう!"
+    }
+  },
+  "node": {
+    "image": {
+      "holdToPlace": "長押しで配置"
+    },
+    "text": {
+      "placeholder": "テキストを入力...",
+      "editHint": "ダブルクリックで編集"
+    }
+  },
+  "pageEditor": {
+    "titlePlaceholder": "目標のタイトル",
+    "changeImage": "画像を変更",
+    "tabs": {
+      "overview": "概要",
+      "milestones": "マイルストーン",
+      "routines": "ルーティン",
+      "frozen": "凍結日",
+      "data": "データ"
+    },
+    "category": {
+      "unset": "カテゴリー未設定",
+      "place": "行きたい場所",
+      "state": "なりたい状態",
+      "experience": "体験したいこと"
+    },
+    "targetYear": {
+      "unset": "達成年代未設定",
+      "2020s": "2020年代",
+      "2030s": "2030年代",
+      "2040s": "2040年代",
+      "2050s": "2050年代",
+      "2060s": "2060年代以降"
+    },
+    "overview": {
+      "title": "概要・メモ",
+      "placeholder": "この目標について自由に記述..."
+    },
+    "milestones": {
+      "progress": "マイルストーン進捗",
+      "description": "目標達成までの中長期的なステップを管理します。ドラッグで並び替え可能です。",
+      "addPlaceholder": "新しいマイルストーンを追加..."
+    },
+    "routines": {
+      "todayTitle": "今日のルーティン",
+      "streakLabel": "継続スコア",
+      "description": "日々の習慣を管理します。色をクリックして変更、ドラッグで並び替えできます。",
+      "thisWeek": "今週",
+      "addPlaceholder": "新しいルーティンを追加...",
+      "shareFromOther": "他の目標から共有",
+      "sharePanel": {
+        "title": "ルーティンを共有",
+        "noOtherGoals": "他の目標にルーティンがありません",
+        "done": "完了"
+      }
+    },
+    "frozen": {
+      "description": "凍結日に設定すると、その日はクリア度が下落しません。旅行や病気など、習慣を実行できない日に設定してください。",
+      "hint": "日付を選択して凍結日を追加",
+      "empty": "凍結日はまだ設定されていません"
+    }
+  },
+  "hoverPreview": {
+    "todayRoutines": "今日できること",
+    "milestones": "達成への道のり",
+    "editHint": "ダブルクリックで編集"
+  },
+  "calendar": {
+    "months": ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+    "weekdays": ["日", "月", "火", "水", "木", "金", "土"],
+    "yearSuffix": "年",
+    "progress": "進捗",
+    "milestoneAchieved": "マイルストーン達成日"
+  },
+  "routineTable": {
+    "task": "タスク",
+    "activeDays": {
+      "edit": "実行日を指定",
+      "done": "完了"
+    }
+  },
+  "export": {
+    "title": "壁紙として出力",
+    "selectResolution": "解像度を選択",
+    "resolutions": {
+      "desktop1080": "デスクトップ (1920×1080)",
+      "desktop1440": "デスクトップ QHD (2560×1440)",
+      "desktop4k": "デスクトップ 4K (3840×2160)",
+      "iphone": "iPhone (1170×2532)",
+      "iphoneMax": "iPhone Pro Max (1284×2778)",
+      "ipad": "iPad (2048×2732)"
+    },
+    "exporting": "出力中...",
+    "download": "ダウンロード",
+    "instruction": "ダウンロード後、デバイスの設定から壁紙に設定してください"
+  },
+  "fontSelector": {
+    "title": "文字サイズ・色を変更",
+    "fontSize": "文字サイズ",
+    "fontColor": "文字色"
+  },
+  "shapeSelector": {
+    "title": "形状を変更",
+    "free": "自由",
+    "original": "オリジナル",
+    "square": "正方形",
+    "landscape": "横長 16:9",
+    "portrait": "縦長 3:4"
+  },
+  "textToolbar": {
+    "font": "フォント"
+  },
+  "blockMenu": {
+    "text": "テキスト",
+    "heading": "見出し",
+    "toggle": "トグル",
+    "check": "チェック",
+    "addBlock": "ブロックを追加"
+  },
+  "block": {
+    "headingPlaceholder": "見出し",
+    "textPlaceholder": "テキストを入力"
+  },
+  "ambientMode": {
+    "addImages": "画像を追加してください",
+    "closeHint": "ESC または クリックで閉じる",
+    "scrollHint": "スクロールで画像切替 • ホバーでルーティン表示"
+  },
+  "hints": {
+    "desktop": "ドラッグで画像を移動 • ホイールドラッグでパン • ダブルクリックでテキスト追加",
+    "mobile": "スワイプで移動 • ダブルタップでテキスト",
+    "prefix": "ヒント:"
+  },
+  "messages": {
+    "milestone": {
+      "0": "はじめの一歩を踏み出そう",
+      "25": "着実に前進中",
+      "50": "順調に進んでいます",
+      "75": "ゴールが見えてきた",
+      "99": "あと少し！",
+      "100": "目標達成！おめでとう"
+    },
+    "today": {
+      "0": "今日も頑張ろう",
+      "50": "いい調子！",
+      "99": "あと少しで完璧",
+      "100": "今日も完璧！"
+    },
+    "streak": {
+      "0": "千里の道も一歩から",
+      "10": "継続は力なり",
+      "30": "習慣が芽生えてきた",
+      "50": "良いリズムができてきた",
+      "70": "素晴らしい継続力",
+      "90": "習慣マスターへの道",
+      "100": "圧倒的継続力！"
+    }
+  },
+  "tabs": {
+    "home": "ホーム",
+    "focus": "フォーカス",
+    "profile": "プロフィール"
+  },
+  "sidebar": {
+    "title": "ボード一覧",
+    "createBoard": "新しいボードを作成",
+    "memos": "メモ",
+    "editName": "名前を編集",
+    "delete": "削除",
+    "deleteConfirmTitle": "ボードを削除",
+    "deleteConfirmMessage": "本当に削除しますか？この操作は取り消せません。",
+    "cancel": "キャンセル",
+    "editBoardTitle": "ボード名を編集",
+    "editBoardPlaceholder": "ボード名"
+  },
+  "canvas": {
+    "selectBoard": "ボードを選択してください",
+    "selectBoardHint": "左上のメニューからボードを選択",
+    "dragToMove": "ドラッグして移動"
+  },
+  "metadata": {
+    "title": "Asterize",
+    "description": "夢と目標を視覚化し実現を促すビジョンボードアプリ"
+  }
+}

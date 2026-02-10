@@ -1,0 +1,266 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "close": "닫기",
+    "loading": "로딩 중...",
+    "or": "또는",
+    "untitled": "제목 없음",
+    "today": "오늘",
+    "completed": "완료"
+  },
+  "auth": {
+    "login": {
+      "title": "Asterize 로그인",
+      "createAccount": "새 계정 만들기",
+      "email": "이메일",
+      "password": "비밀번호",
+      "submitting": "로그인 중...",
+      "submit": "로그인",
+      "withGoogle": "Google로 로그인"
+    },
+    "signup": {
+      "title": "Asterize 계정 만들기",
+      "hasAccount": "이미 계정이 있으신가요?",
+      "login": "로그인",
+      "displayName": "표시 이름",
+      "email": "이메일",
+      "password": "비밀번호",
+      "passwordPlaceholder": "비밀번호 (8자 이상)",
+      "passwordConfirm": "비밀번호 확인",
+      "submitting": "가입 중...",
+      "submit": "계정 만들기",
+      "withGoogle": "Google로 가입",
+      "errors": {
+        "passwordMismatch": "비밀번호가 일치하지 않습니다",
+        "passwordTooShort": "비밀번호는 8자 이상이어야 합니다",
+        "emailExists": "이미 등록된 이메일입니다"
+      }
+    },
+    "logout": "로그아웃"
+  },
+  "boards": {
+    "title": "Asterize",
+    "listTitle": "내 보드",
+    "newBoard": "새 보드",
+    "empty": "아직 보드가 없습니다",
+    "createFirst": "첫 번째 보드 만들기",
+    "editName": "보드 이름 편집",
+    "deleteBoard": "이 보드 삭제",
+    "lastUpdated": "마지막 업데이트:",
+    "createSuccess": "보드가 생성되었습니다",
+    "deleteSuccess": "보드가 삭제되었습니다",
+    "swipeToDelete": "왼쪽으로 스와이프하여 삭제",
+    "offlineMode": "오프라인 모드",
+    "pendingSync": "대기 중",
+    "deleteModal": {
+      "title": "보드 삭제",
+      "message": "정말 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+      "confirm": "삭제"
+    },
+    "notFound": {
+      "title": "보드를 찾을 수 없습니다",
+      "message": "보드가 존재하지 않거나 접근 권한이 없습니다",
+      "backToList": "보드 목록으로 돌아가기"
+    }
+  },
+  "board": {
+    "titleShort": "VB",
+    "titleFull": "Asterize",
+    "addImage": "이미지 추가",
+    "newBoardDefault": "새 보드",
+    "loadingMessage": "로딩 중...",
+    "loadingQuote": "목표는 보이지 않으면 쫓을 수 없다.",
+    "loadingDescription": "여기에 붙인 꿈이 오늘의 행동을 결정한다.",
+    "addFirstImage": "첫 번째 이미지 추가",
+    "uploadFailed": "이미지 업로드 실패",
+    "zoom": {
+      "in": "확대",
+      "out": "축소"
+    },
+    "screenshot": "스크린샷",
+    "exitFullscreen": "전체화면 종료",
+    "slideshow": "슬라이드쇼",
+    "fullscreen": "전체화면",
+    "backToList": "보드 목록",
+    "focusMode": "포커스 모드",
+    "fullscreenMode": "전체화면 모드",
+    "starStack": {
+      "title": "스타 스택",
+      "subtitle": "습관 별 컬렉션",
+      "counter": "★ {count} / {max}",
+      "addStar": "별 추가",
+      "addBatch": "20개 추가",
+      "autoAdd": "자동 추가",
+      "stop": "정지",
+      "reset": "초기화",
+      "rotate": "드래그로 회전",
+      "zoom": "스크롤로 확대/축소",
+      "todayCompleted": "오늘 완료: {count}개",
+      "emptyMessage": "습관을 완료하고 별을 모아보세요!"
+    }
+  },
+  "node": {
+    "image": {
+      "holdToPlace": "길게 눌러 배치"
+    },
+    "text": {
+      "placeholder": "텍스트 입력...",
+      "editHint": "더블클릭하여 편집"
+    }
+  },
+  "pageEditor": {
+    "titlePlaceholder": "목표 제목",
+    "changeImage": "이미지 변경",
+    "tabs": {
+      "overview": "개요",
+      "milestones": "마일스톤",
+      "routines": "루틴",
+      "frozen": "동결일",
+      "data": "데이터"
+    },
+    "category": {
+      "unset": "카테고리 미설정",
+      "place": "가고 싶은 곳",
+      "state": "되고 싶은 상태",
+      "experience": "경험하고 싶은 것"
+    },
+    "targetYear": {
+      "unset": "목표 연도 미설정",
+      "2020s": "2020년대",
+      "2030s": "2030년대",
+      "2040s": "2040년대",
+      "2050s": "2050년대",
+      "2060s": "2060년대 이후"
+    },
+    "overview": {
+      "title": "개요 및 메모",
+      "placeholder": "이 목표에 대해 자유롭게 작성..."
+    },
+    "milestones": {
+      "progress": "마일스톤 진행률",
+      "description": "목표 달성을 위한 단계를 관리합니다. 드래그하여 순서 변경.",
+      "addPlaceholder": "새 마일스톤 추가..."
+    },
+    "routines": {
+      "todayTitle": "오늘의 루틴",
+      "streakLabel": "지속 스코어",
+      "description": "일상 습관을 관리합니다. 색상 클릭으로 변경, 드래그로 순서 변경.",
+      "thisWeek": "이번 주",
+      "addPlaceholder": "새 루틴 추가...",
+      "shareFromOther": "다른 목표에서 공유",
+      "sharePanel": {
+        "title": "루틴 공유",
+        "noOtherGoals": "다른 목표에 루틴이 없습니다",
+        "done": "완료"
+      }
+    },
+    "frozen": {
+      "description": "동결일로 설정하면 해당 날짜에 선명도가 하락하지 않습니다. 여행이나 질병 등 습관을 실행할 수 없는 날에 설정하세요.",
+      "hint": "날짜를 선택하여 동결일 추가",
+      "empty": "아직 동결일이 설정되지 않았습니다"
+    }
+  },
+  "hoverPreview": {
+    "todayRoutines": "오늘 할 수 있는 것",
+    "milestones": "달성으로 가는 길",
+    "editHint": "더블클릭하여 편집"
+  },
+  "calendar": {
+    "months": ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"],
+    "weekdays": ["일", "월", "화", "수", "목", "금", "토"],
+    "yearSuffix": "년",
+    "progress": "진행률",
+    "milestoneAchieved": "마일스톤 달성일"
+  },
+  "routineTable": {
+    "task": "작업",
+    "activeDays": {
+      "edit": "요일 설정",
+      "done": "완료"
+    }
+  },
+  "export": {
+    "title": "배경화면으로 내보내기",
+    "selectResolution": "해상도 선택",
+    "resolutions": {
+      "desktop1080": "데스크톱 (1920×1080)",
+      "desktop1440": "데스크톱 QHD (2560×1440)",
+      "desktop4k": "데스크톱 4K (3840×2160)",
+      "iphone": "iPhone (1170×2532)",
+      "iphoneMax": "iPhone Pro Max (1284×2778)",
+      "ipad": "iPad (2048×2732)"
+    },
+    "exporting": "내보내는 중...",
+    "download": "다운로드",
+    "instruction": "다운로드 후, 기기 설정에서 배경화면으로 설정하세요"
+  },
+  "fontSelector": {
+    "title": "글꼴 크기 및 색상 변경",
+    "fontSize": "글꼴 크기",
+    "fontColor": "글꼴 색상"
+  },
+  "shapeSelector": {
+    "title": "모양 변경",
+    "free": "자유",
+    "original": "원본",
+    "square": "정사각형",
+    "landscape": "가로 16:9",
+    "portrait": "세로 3:4"
+  },
+  "textToolbar": {
+    "font": "글꼴"
+  },
+  "blockMenu": {
+    "text": "텍스트",
+    "heading": "제목",
+    "toggle": "토글",
+    "check": "체크박스",
+    "addBlock": "블록 추가"
+  },
+  "block": {
+    "headingPlaceholder": "제목",
+    "textPlaceholder": "텍스트 입력"
+  },
+  "ambientMode": {
+    "addImages": "이미지를 추가해주세요",
+    "closeHint": "ESC 또는 클릭하여 닫기",
+    "scrollHint": "스크롤로 이미지 전환 • 호버로 루틴 표시"
+  },
+  "hints": {
+    "desktop": "드래그하여 이미지 이동 • 휠 드래그로 패닝 • 더블클릭으로 텍스트 추가",
+    "mobile": "스와이프하여 이동 • 더블탭으로 텍스트",
+    "prefix": "힌트:"
+  },
+  "messages": {
+    "milestone": {
+      "0": "첫 걸음을 내딛어 보세요",
+      "25": "꾸준히 전진 중",
+      "50": "순조롭게 진행 중",
+      "75": "목표가 보입니다",
+      "99": "거의 다 왔어요!",
+      "100": "목표 달성! 축하합니다"
+    },
+    "today": {
+      "0": "오늘도 화이팅",
+      "50": "좋은 조자!",
+      "99": "거의 완벽해요",
+      "100": "완벽한 하루!"
+    },
+    "streak": {
+      "0": "천 리 길도 한 걸음부터",
+      "10": "꾸준함이 힘입니다",
+      "30": "습관이 자라고 있어요",
+      "50": "좋은 리듬이 생겼어요",
+      "70": "대단한 지속력",
+      "90": "습관 마스터의 길",
+      "100": "멈출 수 없는 당신!"
+    }
+  },
+  "metadata": {
+    "title": "Asterize",
+    "description": "꿈과 목표를 시각화하여 현실로 만들어보세요"
+  }
+}

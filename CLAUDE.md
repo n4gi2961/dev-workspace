@@ -35,30 +35,38 @@ This is a fresh workspace with no active projects. When working here:
 ## User added Rule 
 - 回答は必ず日本語で行ってください。文脈が不適切な場合は英語を使用する。
 
-## React開発におけるuseCallbackの依存配列管理ルール
+## Vision Board app開発における技術スタック
+### モバイル版
+| 項目 | 選定 | 理由 |
+|------|------|------|
+| フレームワーク | **Expo SDK 52+** | New Architecture標準、OTA更新、EAS Build |
+| ルーティング | **expo-router v4** | ファイルベース、ディープリンク自動化 |
+| スタイル | **NativeWind v4** | Tailwind記法流用、学習コスト最小 |
+| アニメーション | **Reanimated 3** | JSI経由の高パフォーマンス |
+| ジェスチャー | **react-native-gesture-handler** | ドラッグ&ドロップ |
+| リスト表示 | **FlashList** | FlatListの5-10倍高速（セルリサイクル） |
+| 画像 | **expo-image** | BlurHash、ディスクキャッシュ、prefetch |
+| ハプティクス | **expo-haptics** | タッチフィードバック |
+| アイコン | Lucide Icons |
+| ストレージ | **AsyncStorage + MMKV** | 通常データ + 機密データ（暗号化） |
 
-### 発生した問題の構造的原因
-React Hooksの`useCallback`で依存配列が不完全だったため、パターン変更時に古いクロージャが使われ続けた問題が発生しました。
+### プランモードの計画保存
+プランモードで承認されたプランは、実行開始時に以下の手順で保存すること：
+1. プランファイル（`/root/.claude/plans/` 内）の内容を読み取る
+2. `date +"%y%m%d"` で日付を取得し、保存先に日付フォルダ（例: `260206/`）を作成（既存なら省略）
+3. ファイル名を `HHmm_タイトル.md` 形式で生成（`date +"%H%M"` を使用）
+4. 保存先パスを `/home/claude-code/.claude/plan-config.json` の `outputFolder` から取得
+5. `outputFolder/YYMMDD/HHmm_タイトル.md` に Write ツールで保存し、保存先をユーザーに報告
 
-**根本原因:**
-1. `useCallback`内で他の関数を呼び出しているのに、その関数が依存配列に含まれていなかった
-2. 関数定義の順序による循環依存が発生していた
-3. ESLintの警告を適切に対処せずに放置していた
+### pencil MCPについて
+モバイルアプリUI開発に用いるpencilの操作は、指示がすべて完了しユーザーに会話を返す前に必ず保存すること。
 
-### 今後の防止策ルール
-
-**必須ルール:**
-1. **完全な依存配列**: `useCallback`内で使用するすべての関数・変数を依存配列に含める
-2. **ESLint警告の即時対応**: `react-hooks/exhaustive-deps`の警告は必ず修正する
-3. **関数定義順序の管理**: 循環依存を避けるため、呼び出される関数を先に定義する
-
-**推奨ルール:**
-1. **関数の責任分離**: 複雑な処理は小さな関数に分割して依存関係を明確にする
-2. **型安全性の確保**: TypeScriptの型チェックを活用してランタイムエラーを防ぐ
-3. **テスト駆動開発**: 各フックの動作を単体テストで検証する
-
-これらのルールに従うことで、React Hooksの依存配列に関する問題を事前に防ぐことができます。
-- 
-
-## 参照ドキュメント
-- /docs/supabase-reference.md - Supabase実装の参考
+### $log
+ユーザーが$logと入力したら、以下を実行：
+1. 各ディレクトリに格納されているフォルダ名から日付を認識し、最も新しい日付を特定。
+   - Plan: `find /home/claude-code/projects/vision-board/docs/plan
+   - Log: /mnt/c/Users/ogaki/Documents/Obsidian Vault/Vision-Board-app/Claude-code_Log
+2. 特定した日付のフォルダ内のmdファイルの始めの数字から作成された時刻を把握し、最も新しい3つを読み込んで直近の計画と実行記録を確認する。読み込んだmdファイル数が3に満たない場合は前日に戻り同様の操作を行う。
+3./home/claude-code/projects/vision-board/docs/plan/mustloadに保存されているファイルには必ず目を通す。
+4.将来的に搭載予定の機能・修正する不具合メモ.mdファイルのうち、1-2の操作で既に実行済みを確認したものについては完了したチェックマークとその日付を記載する。
+5 現在の状況と次のTODOをまとめて報告

@@ -1,0 +1,266 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "or": "o",
+    "untitled": "Sin título",
+    "today": "Hoy",
+    "completed": "Completado"
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar sesión en Asterize",
+      "createAccount": "Crear nueva cuenta",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "submitting": "Iniciando sesión...",
+      "submit": "Iniciar sesión",
+      "withGoogle": "Iniciar con Google"
+    },
+    "signup": {
+      "title": "Crear cuenta de Asterize",
+      "hasAccount": "¿Ya tienes una cuenta?",
+      "login": "Iniciar sesión",
+      "displayName": "Nombre para mostrar",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "passwordPlaceholder": "Contraseña (8+ caracteres)",
+      "passwordConfirm": "Confirmar contraseña",
+      "submitting": "Creando cuenta...",
+      "submit": "Crear cuenta",
+      "withGoogle": "Registrarse con Google",
+      "errors": {
+        "passwordMismatch": "Las contraseñas no coinciden",
+        "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+        "emailExists": "Este correo ya está registrado"
+      }
+    },
+    "logout": "Cerrar sesión"
+  },
+  "boards": {
+    "title": "Asterize",
+    "listTitle": "Mis tableros",
+    "newBoard": "Nuevo tablero",
+    "empty": "Aún no hay tableros",
+    "createFirst": "Crea tu primer tablero",
+    "editName": "Editar nombre del tablero",
+    "deleteBoard": "Eliminar este tablero",
+    "lastUpdated": "Última actualización:",
+    "createSuccess": "Tablero creado",
+    "deleteSuccess": "Tablero eliminado",
+    "swipeToDelete": "Desliza a la izquierda para eliminar",
+    "offlineMode": "Modo sin conexión",
+    "pendingSync": "pendientes",
+    "deleteModal": {
+      "title": "Eliminar tablero",
+      "message": "¿Estás seguro? Esta acción no se puede deshacer.",
+      "confirm": "Eliminar"
+    },
+    "notFound": {
+      "title": "Tablero no encontrado",
+      "message": "El tablero no existe o no tienes acceso",
+      "backToList": "Volver a tableros"
+    }
+  },
+  "board": {
+    "titleShort": "VB",
+    "titleFull": "Asterize",
+    "addImage": "Añadir imagen",
+    "newBoardDefault": "Nuevo tablero",
+    "loadingMessage": "Cargando...",
+    "loadingQuote": "Pon tus sueños donde puedas verlos.",
+    "loadingDescription": "Cada vez que miras, te acercas un paso más.",
+    "addFirstImage": "Añade tu primera imagen",
+    "uploadFailed": "Error al subir imagen",
+    "zoom": {
+      "in": "Acercar",
+      "out": "Alejar"
+    },
+    "screenshot": "Captura",
+    "exitFullscreen": "Salir de pantalla completa",
+    "slideshow": "Presentación",
+    "fullscreen": "Pantalla completa",
+    "backToList": "Volver a tableros",
+    "focusMode": "Modo enfoque",
+    "fullscreenMode": "Modo pantalla completa",
+    "starStack": {
+      "title": "Frasco de Estrellas",
+      "subtitle": "Colección de Estrellas de Hábitos",
+      "counter": "★ {count} / {max}",
+      "addStar": "Añadir Estrella",
+      "addBatch": "Añadir 20",
+      "autoAdd": "Auto Añadir",
+      "stop": "Parar",
+      "reset": "Reiniciar",
+      "rotate": "Arrastra para rotar",
+      "zoom": "Desplaza para zoom",
+      "todayCompleted": "Hoy: {count} completados",
+      "emptyMessage": "¡Completa hábitos para coleccionar estrellas!"
+    }
+  },
+  "node": {
+    "image": {
+      "holdToPlace": "Mantén presionado para colocar"
+    },
+    "text": {
+      "placeholder": "Escribe aquí...",
+      "editHint": "Doble clic para editar"
+    }
+  },
+  "pageEditor": {
+    "titlePlaceholder": "Título del objetivo",
+    "changeImage": "Cambiar imagen",
+    "tabs": {
+      "overview": "Resumen",
+      "milestones": "Hitos",
+      "routines": "Rutinas",
+      "frozen": "Días congelados",
+      "data": "Datos"
+    },
+    "category": {
+      "unset": "Sin categoría",
+      "place": "Lugares a visitar",
+      "state": "Estados a lograr",
+      "experience": "Experiencias a tener"
+    },
+    "targetYear": {
+      "unset": "Año objetivo no establecido",
+      "2020s": "Años 2020",
+      "2030s": "Años 2030",
+      "2040s": "Años 2040",
+      "2050s": "Años 2050",
+      "2060s": "Años 2060 en adelante"
+    },
+    "overview": {
+      "title": "Resumen y notas",
+      "placeholder": "Escribe libremente sobre este objetivo..."
+    },
+    "milestones": {
+      "progress": "Progreso de hitos",
+      "description": "Gestiona los pasos hacia tu meta. Arrastra para reordenar.",
+      "addPlaceholder": "Añadir nuevo hito..."
+    },
+    "routines": {
+      "todayTitle": "Rutinas de hoy",
+      "streakLabel": "Puntuación",
+      "description": "Gestiona hábitos diarios. Clic en color para cambiar, arrastra para reordenar.",
+      "thisWeek": "Esta semana",
+      "addPlaceholder": "Añadir nueva rutina...",
+      "shareFromOther": "Compartir de otras metas",
+      "sharePanel": {
+        "title": "Compartir rutinas",
+        "noOtherGoals": "No hay rutinas en otras metas",
+        "done": "Hecho"
+      }
+    },
+    "frozen": {
+      "description": "Los días congelados evitan que la claridad disminuya. Úsalos para días en que no puedas practicar hábitos (viajes, enfermedad, etc.).",
+      "hint": "Selecciona una fecha para añadir un día congelado",
+      "empty": "No hay días congelados configurados"
+    }
+  },
+  "hoverPreview": {
+    "todayRoutines": "Lo que puedes hacer hoy",
+    "milestones": "Camino hacia el logro",
+    "editHint": "Doble clic para editar"
+  },
+  "calendar": {
+    "months": ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+    "weekdays": ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+    "yearSuffix": "",
+    "progress": "Progreso",
+    "milestoneAchieved": "Hito alcanzado"
+  },
+  "routineTable": {
+    "task": "Tarea",
+    "activeDays": {
+      "edit": "Establecer Días",
+      "done": "Listo"
+    }
+  },
+  "export": {
+    "title": "Exportar como fondo",
+    "selectResolution": "Seleccionar resolución",
+    "resolutions": {
+      "desktop1080": "Escritorio (1920×1080)",
+      "desktop1440": "Escritorio QHD (2560×1440)",
+      "desktop4k": "Escritorio 4K (3840×2160)",
+      "iphone": "iPhone (1170×2532)",
+      "iphoneMax": "iPhone Pro Max (1284×2778)",
+      "ipad": "iPad (2048×2732)"
+    },
+    "exporting": "Exportando...",
+    "download": "Descargar",
+    "instruction": "Después de descargar, establece como fondo en ajustes"
+  },
+  "fontSelector": {
+    "title": "Cambiar tamaño y color de fuente",
+    "fontSize": "Tamaño de fuente",
+    "fontColor": "Color de fuente"
+  },
+  "shapeSelector": {
+    "title": "Cambiar forma",
+    "free": "Libre",
+    "original": "Original",
+    "square": "Cuadrado",
+    "landscape": "Horizontal 16:9",
+    "portrait": "Vertical 3:4"
+  },
+  "textToolbar": {
+    "font": "Fuente"
+  },
+  "blockMenu": {
+    "text": "Texto",
+    "heading": "Encabezado",
+    "toggle": "Alternar",
+    "check": "Casilla",
+    "addBlock": "Añadir bloque"
+  },
+  "block": {
+    "headingPlaceholder": "Encabezado",
+    "textPlaceholder": "Escribe aquí"
+  },
+  "ambientMode": {
+    "addImages": "Por favor, añade imágenes",
+    "closeHint": "Pulsa ESC o clic para cerrar",
+    "scrollHint": "Desplaza para cambiar imágenes • Pasa el cursor para ver rutinas"
+  },
+  "hints": {
+    "desktop": "Arrastra para mover imágenes • Arrastra con rueda para desplazar • Doble clic para añadir texto",
+    "mobile": "Desliza para mover • Doble toque para texto",
+    "prefix": "Consejo:"
+  },
+  "messages": {
+    "milestone": {
+      "0": "Da el primer paso",
+      "25": "Avance constante",
+      "50": "Todo va bien",
+      "75": "La meta está cerca",
+      "99": "¡Casi lo logras!",
+      "100": "¡Meta alcanzada! Felicidades"
+    },
+    "today": {
+      "0": "¡Ánimo hoy también!",
+      "50": "¡Vas muy bien!",
+      "99": "Casi perfecto",
+      "100": "¡Día perfecto!"
+    },
+    "streak": {
+      "0": "Un viaje de mil millas comienza con un paso",
+      "10": "La constancia es clave",
+      "30": "Los hábitos se están formando",
+      "50": "Gran ritmo",
+      "70": "Consistencia increíble",
+      "90": "Camino a la maestría",
+      "100": "¡Imparable!"
+    }
+  },
+  "metadata": {
+    "title": "Asterize",
+    "description": "Visualiza tus sueños y metas para hacerlos realidad"
+  }
+}

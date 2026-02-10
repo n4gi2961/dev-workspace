@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@vision-board/shared": ["../shared/src"],
+      "@vision-board/shared/*": ["../shared/src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

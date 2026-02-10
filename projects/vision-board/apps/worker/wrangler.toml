@@ -1,0 +1,16 @@
+name = "vb-r2-api"
+main = "src/index.ts"
+compatibility_date = "2026-02-08"
+account_id = "80bb0ce4d56e8863047af741564785df"
+
+# R2 bucket binding
+[[r2_buckets]]
+binding = "BOARD_IMAGES"
+bucket_name = "vb-board-images"
+
+# Environment variables
+[vars]
+SUPABASE_URL = "https://ebahqgipzykevbqbdpts.supabase.co"
+
+# Secrets (set via `wrangler secret put`)
+# SUPABASE_JWT_SECRET - HS256 fallback for legacy tokens (anon key etc.)
