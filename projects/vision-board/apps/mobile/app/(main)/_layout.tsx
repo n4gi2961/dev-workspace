@@ -43,6 +43,7 @@ function MainLayoutContent() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="board/[id]" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="subscription" />
         <Stack.Screen
           name="page/[nodeId]"
           options={{

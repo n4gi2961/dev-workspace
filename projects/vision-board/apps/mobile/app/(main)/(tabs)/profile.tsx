@@ -160,7 +160,8 @@ export default function ProfileScreen() {
                 borderRadius: 12,
               }}
             />
-            <View
+            <Pressable
+              onPress={() => router.push('/(main)/subscription/pricing' as never)}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -179,7 +180,7 @@ export default function ProfileScreen() {
                 <Lock size={14} color="#F59E0B" />
                 <Text className="font-bold text-sm" style={{ color: '#F59E0B' }}>PREMIUM</Text>
               </View>
-            </View>
+            </Pressable>
           </View>
         </View>
 

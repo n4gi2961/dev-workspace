@@ -107,6 +107,8 @@ export function usePages(userId: string | null) {
 
   const loadPage = useCallback(async (nodeId: string): Promise<Page | null> => {
     if (!userId) return null;
+    // Temp nodes (not yet persisted) can't be queried by UUID
+    if (nodeId.startsWith('temp_')) return createInitialPage();
 
     const versionAtStart = stateVersionRef.current;
 

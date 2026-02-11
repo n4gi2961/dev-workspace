@@ -79,3 +79,76 @@ GestureHandlerRootView → GestureDetector → Animated.View(dismissAnimatedStyl
 
 ### 3h. ページ切替時の scrollY リセット
 `onViewableItemsChanged` 内で `activeScrollY.value = 0`（新ページは常にトップから開始）。
+
+
+# 重要：ユーザー追記
+pull-down dismiss大幅実装前に、[main 88b87f3] feat: Vision Board モバイルアプリ 260210全セッション分としてコミット、プッシュを行った。その後のコードが大規模かつ明後日の方向に進んだ(この計画)ので上記にロールバックした。その際いくつかの未コミットの変更を破棄した。
+  - 変更済みファイル: SuburbsSound.ts, _layout.tsx, PageContent.tsx, など
+  - 未追跡ファイル: experiments/PageScreen.tsx, 多数の Zone.Identifier ファイルなど 
+
+再度実行し基本機能での不具合はなかったが、以前出現した画像追加時のエラーが再発していたので対処する。
+教訓：夜のclaudeに大規模な修正やプラン建てをさせない。軽微な修正を残しておく。
+
+またpull-down dismissの実装は、下記の解説を参考にする。
+
+2. 既存ライブラリのpull-to-dismiss機能
+react-native-bottom-sheet (⭐推奨)
+GitHub: gorhom/react-native-bottom-sheet
+特徴：
+
+Reanimated v2 + Gesture Handler v2 ベースでジェスチャー競合を内部で解決済み
+内蔵の BottomSheetScrollView がスクロールとdismissの切り替えをネイティブレベルで処理
+あなたがClaude Codeに作らせたもの（ScrollView内のpull-to-dismiss）を、すでに解決された形で提供している
+tsx
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+function PageModal() {
+  const sheetRef = useRef<BottomSheet>(null);
+  
+  return (
+    <BottomSheet
+      ref={sheetRef}
+      snapPoints={['100%']}        // フルスクリーン
+      enablePanDownToClose={true}   // ← これだけでpull-to-dismiss完成
+      enableDynamicSizing={false}
+    >
+      <BottomSheetScrollView>
+        {/* コンテンツ */}
+        {/* ScrollViewの上端にいるときだけ下スワイプでdismiss */}
+        {/* → ジェスチャー競合はライブラリが解決済み */}
+      </BottomSheetScrollView>
+    </BottomSheet>
+  );
+}
+ポイント： BottomSheetScrollView を使うだけで、スクロールとdismissの競合問題が自動的に解決されます。manualActivation も requireExternalGestureToFail も不要です。
+
+react-native-modalize
+特徴：
+
+react-native-bottom-sheet より古い、やや機能が少ない
+ただし設定がシンプルで、基本的なモーダル＋dismiss用途には十分
+tsx
+import { Modalize } from 'react-native-modalize';
+<Modalize
+  modalHeight={windowHeight}
+  closeOnOverlayTap={true}
+  panGestureEnabled={true}      // ← pull-to-dismiss有効
+  closeSnapPointStraightEnabled={false}
+>
+  {/* コンテンツ（ScrollViewは内蔵） */}
+</Modalize>
+比較表
+項目	bottom-sheet	modalize	今の自前実装
+ジェスチャー競合処理	✅ 内部で解決	✅ 内部で解決	❌ 手動で戦う
+Reanimated v2対応	✅	△ (v1ベース)	✅
+Gesture Handler v2対応	✅	❌	✅
+コード複雑度	低い	低い	非常に高い
+snap points (中間位置)	✅	✅	❌
+メンテナンス状況	活発	ほぼ停止	-
+おすすめ
+@gorhom/bottom-sheet を使って、ページ表示モーダルをBottomSheet + BottomSheetScrollViewに置き換えるのが最善です。
+
+理由：
+
+あなたのアプリはすでに react-native-reanimated と react-native-gesture-handler を使っている → 追加依存が最小
+Claude Codeが100行以上かけて解決しようとした問題が、enablePanDownToClose={true} の1行で解決する
+横スワイプ（ページ切り替え）との共存も simultaneousHandlers で比較的簡単に対応可能

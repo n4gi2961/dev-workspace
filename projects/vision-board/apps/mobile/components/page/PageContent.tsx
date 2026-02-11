@@ -45,9 +45,9 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  place: '場所',
-  state: '状態',
-  experience: '経験',
+  place: '行きたい場所',
+  state: 'なりたい状態',
+  experience: '経験したいこと',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -146,7 +146,7 @@ function SelectorDropdown({
 function HeaderActions({
   onClose,
   onImageEdit,
-  size = 42,
+  size = 44,
 }: {
   onClose: () => void;
   onImageEdit?: () => void;
@@ -155,39 +155,28 @@ function HeaderActions({
   const r = size / 2;
   return (
     <View style={{ flexDirection: 'row', gap: 10 }}>
-      <Pressable
+      <TouchableOpacity
         onPress={onImageEdit}
-        style={({ pressed }) => ({
+        activeOpacity={0.6}
+        style={{
           width: size, height: size, borderRadius: r,
-          backgroundColor: 'rgba(80,80,80,0.6)',
+          backgroundColor: 'rgba(80,80,80,0.3)',
           alignItems: 'center', justifyContent: 'center',
-          opacity: pressed ? 0.6 : 1,
-        })}
+        }}
       >
-        <LucideIcon name="image" size={size * 0.5} color="#FFFFFF" />
-      </Pressable>
-      <Pressable
-        onPress={() => {}}
-        style={({ pressed }) => ({
-          width: size, height: size, borderRadius: r,
-          backgroundColor: 'rgba(80,80,80,0.6)',
-          alignItems: 'center', justifyContent: 'center',
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <LucideIcon name="share" size={size * 0.5} color="#FFFFFF" />
-      </Pressable>
-      <Pressable
+        <LucideIcon name="image" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+      <TouchableOpacity
         onPress={onClose}
-        style={({ pressed }) => ({
+        activeOpacity={0.6}
+        style={{
           width: size, height: size, borderRadius: r,
-          backgroundColor: 'rgba(80,80,80,0.6)',
+          backgroundColor: 'rgba(80,80,80,0.3)',
           alignItems: 'center', justifyContent: 'center',
-          opacity: pressed ? 0.6 : 1,
-        })}
+        }}
       >
-        <LucideIcon name="x" size={size * 0.56} color="#FFFFFF" />
-      </Pressable>
+        <LucideIcon name="x" size={26} color="#FFFFFF" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -281,10 +270,10 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
     const updated = page.milestones.map(m =>
       m.id === id
         ? {
-            ...m,
-            completed: !m.completed,
-            completedAt: !m.completed ? new Date().toISOString() : undefined,
-          }
+          ...m,
+          completed: !m.completed,
+          completedAt: !m.completed ? new Date().toISOString() : undefined,
+        }
         : m
     );
     setPage(prev => prev ? { ...prev, milestones: updated } : prev);
@@ -442,214 +431,214 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
       </Animated.View>
 
       {/* ===== Main scrollable content ===== */}
-        <Animated.ScrollView
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          automaticallyAdjustKeyboardInsets
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: insets.bottom + 400 }}
-          bounces={false}
-        >
-          {/* Header image area */}
-          <View style={{ height: HEADER_IMAGE_HEIGHT, position: 'relative' }}>
-            {headerImage ? (
-              <View style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-                <Image
-                  source={{ uri: headerImage }}
-                  onLoad={(e: { source: { width: number; height: number } }) => {
-                    setHeaderImgNatural({ w: e.source.width, h: e.source.height });
-                  }}
-                  style={(() => {
-                    if (!headerImgNatural) {
-                      return { width: '100%', height: '100%' } as const;
-                    }
-                    const crop = page?.headerImageCrop;
-                    const natW = headerImgNatural.w;
-                    const natH = headerImgNatural.h;
-
-                    const coverScale = Math.max(
-                      screenWidth / natW,
-                      HEADER_IMAGE_HEIGHT / natH,
-                    );
-                    const userZoom = crop?.scale ?? 1;
-                    const totalScale = coverScale * userZoom;
-
-                    const displayW = natW * totalScale;
-                    const displayH = natH * totalScale;
-
-                    const px = crop?.x ?? 50;
-                    const py = crop?.y ?? 50;
-
-                    const maxTx = Math.max(0, (displayW - screenWidth) / 2);
-                    const maxTy = Math.max(0, (displayH - HEADER_IMAGE_HEIGHT) / 2);
-
-                    const tx = maxTx > 0 ? maxTx * (1 - px / 50) : 0;
-                    const ty = maxTy > 0 ? maxTy * (1 - py / 50) : 0;
-
-                    const left = (screenWidth - displayW) / 2 + tx;
-                    const top = (HEADER_IMAGE_HEIGHT - displayH) / 2 + ty;
-
-                    return {
-                      position: 'absolute' as const,
-                      left,
-                      top,
-                      width: displayW,
-                      height: displayH,
-                    };
-                  })()}
-                  contentFit={headerImgNatural ? 'fill' : 'cover'}
-                />
-              </View>
-            ) : (
-              <View style={{ flex: 1, backgroundColor: '#1E1E1E' }} />
-            )}
-
-            {/* Gradient overlay */}
-            <LinearGradient
-              colors={['transparent', 'rgba(18,18,18,0.8)', '#121212']}
-              locations={[0.3, 0.7, 1]}
-              style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 }}
-            />
-
-            {/* Top bar icons */}
-            <View
-              style={{
-                position: 'absolute',
-                top: insets.top + 8,
-                right: 16,
-              }}
-            >
-              <HeaderActions onClose={onClose} onImageEdit={handleImageEdit} />
-            </View>
-
-            {/* Title over image */}
-            <View style={{ position: 'absolute', bottom: 16, left: 20, right: 20 }}>
-              <TextInput
-                value={titleText}
-                onChangeText={setTitleText}
-                onBlur={handleTitleBlur}
-                placeholder="タイトルを入力"
-                placeholderTextColor="#6B7280"
-                style={{
-                  fontSize: 24,
-                  fontWeight: '700',
-                  color: '#FFFFFF',
-                  padding: 0,
+      <Animated.ScrollView
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 400 }}
+        bounces={false}
+      >
+        {/* Header image area */}
+        <View style={{ height: HEADER_IMAGE_HEIGHT, position: 'relative' }}>
+          {headerImage ? (
+            <View style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+              <Image
+                source={{ uri: headerImage }}
+                onLoad={(e: { source: { width: number; height: number } }) => {
+                  setHeaderImgNatural({ w: e.source.width, h: e.source.height });
                 }}
+                style={(() => {
+                  if (!headerImgNatural) {
+                    return { width: '100%', height: '100%' } as const;
+                  }
+                  const crop = page?.headerImageCrop;
+                  const natW = headerImgNatural.w;
+                  const natH = headerImgNatural.h;
+
+                  const coverScale = Math.max(
+                    screenWidth / natW,
+                    HEADER_IMAGE_HEIGHT / natH,
+                  );
+                  const userZoom = crop?.scale ?? 1;
+                  const totalScale = coverScale * userZoom;
+
+                  const displayW = natW * totalScale;
+                  const displayH = natH * totalScale;
+
+                  const px = crop?.x ?? 50;
+                  const py = crop?.y ?? 50;
+
+                  const maxTx = Math.max(0, (displayW - screenWidth) / 2);
+                  const maxTy = Math.max(0, (displayH - HEADER_IMAGE_HEIGHT) / 2);
+
+                  const tx = maxTx > 0 ? maxTx * (1 - px / 50) : 0;
+                  const ty = maxTy > 0 ? maxTy * (1 - py / 50) : 0;
+
+                  const left = (screenWidth - displayW) / 2 + tx;
+                  const top = (HEADER_IMAGE_HEIGHT - displayH) / 2 + ty;
+
+                  return {
+                    position: 'absolute' as const,
+                    left,
+                    top,
+                    width: displayW,
+                    height: displayH,
+                  };
+                })()}
+                contentFit={headerImgNatural ? 'fill' : 'cover'}
               />
             </View>
-          </View>
-
-          {/* Loading */}
-          {loading && (
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#0095F6" />
-            </View>
+          ) : (
+            <View style={{ flex: 1, backgroundColor: '#1E1E1E' }} />
           )}
 
-          {/* Category & Decade selectors */}
-          <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingTop: 16, gap: 10 }}>
-            <SelectorDropdown
-              label="カテゴリー未設定"
-              value={page?.category}
-              color={page?.category ? CATEGORY_COLORS[page.category] : undefined}
-              options={CATEGORIES.map(c => ({
-                id: c.id,
-                label: CATEGORY_LABELS[c.id] || c.id,
-                color: CATEGORY_COLORS[c.id],
-              }))}
-              onSelect={handleCategorySelect}
-            />
-            <SelectorDropdown
-              label="達成年代未設定"
-              value={page?.targetDecade}
-              options={DECADES.map(d => ({
-                id: d.id,
-                label: DECADE_LABELS[d.id] || d.id,
-              }))}
-              onSelect={handleDecadeSelect}
-            />
-          </View>
+          {/* Gradient overlay */}
+          <LinearGradient
+            colors={['transparent', 'rgba(18,18,18,0.8)', '#121212']}
+            locations={[0.3, 0.7, 1]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 }}
+          />
 
-          {/* Tab bar */}
+          {/* Top bar icons */}
           <View
             style={{
-              flexDirection: 'row',
-              paddingHorizontal: 20,
-              paddingTop: 20,
-              gap: 8,
+              position: 'absolute',
+              top: insets.top + 8,
+              right: 16,
             }}
           >
-            {TABS.map(tab => {
-              const isActive = activeTab === tab.id;
-              return (
-                <TouchableOpacity
-                  key={tab.id}
-                  onPress={() => setActiveTab(tab.id)}
-                  activeOpacity={0.7}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 20,
-                    backgroundColor: isActive ? '#0095F6' : '#2A2A2A',
-                  }}
-                >
-                  <LucideIcon
-                    name={tab.icon}
-                    size={16}
-                    color={isActive ? '#FFFFFF' : '#9CA3AF'}
-                  />
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '600',
-                      color: isActive ? '#FFFFFF' : '#9CA3AF',
-                    }}
-                  >
-                    {tab.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            <HeaderActions onClose={onClose} onImageEdit={handleImageEdit} />
           </View>
 
-          {/* Tab content */}
-          <View style={{ paddingHorizontal: 20, paddingTop: 20, minHeight: 300 }}>
-            {activeTab === 'routine' && (
-              <RoutineWeeklyTable
-                routines={nodeRoutines}
-                weekOffset={weekOffset}
-                onWeekChange={setWeekOffset}
-                onToggle={toggleRoutineCheck}
-                onCreate={handleCreateRoutine}
-                onDelete={deleteRoutine}
-                onUpdateTitle={updateRoutineTitle}
-                onUpdateColor={updateRoutineColor}
-                onUpdateActiveDays={updateRoutineActiveDays}
-                onReorder={handleReorderRoutines}
-              />
-            )}
-            {activeTab === 'milestone' && (
-              <MilestoneList
-                milestones={page?.milestones ?? []}
-                onToggle={handleToggleMilestone}
-                onAdd={handleAddMilestone}
-                onDelete={handleDeleteMilestone}
-                onUpdateTitle={handleUpdateMilestoneTitle}
-                onReorder={handleReorderMilestones}
-              />
-            )}
-            {activeTab === 'data' && (
-              <CalendarDataView
-                routines={nodeRoutines}
-                milestones={page?.milestones ?? []}
-              />
-            )}
+          {/* Title over image */}
+          <View style={{ position: 'absolute', bottom: 16, left: 20, right: 20 }}>
+            <TextInput
+              value={titleText}
+              onChangeText={setTitleText}
+              onBlur={handleTitleBlur}
+              placeholder="タイトルを入力"
+              placeholderTextColor="#6B7280"
+              style={{
+                fontSize: 24,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                padding: 0,
+              }}
+            />
           </View>
-        </Animated.ScrollView>
+        </View>
+
+        {/* Loading */}
+        {loading && (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#0095F6" />
+          </View>
+        )}
+
+        {/* Category & Decade selectors */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingTop: 16, gap: 10 }}>
+          <SelectorDropdown
+            label="カテゴリー未設定"
+            value={page?.category}
+            color={page?.category ? CATEGORY_COLORS[page.category] : undefined}
+            options={CATEGORIES.map(c => ({
+              id: c.id,
+              label: CATEGORY_LABELS[c.id] || c.id,
+              color: CATEGORY_COLORS[c.id],
+            }))}
+            onSelect={handleCategorySelect}
+          />
+          <SelectorDropdown
+            label="達成年代未設定"
+            value={page?.targetDecade}
+            options={DECADES.map(d => ({
+              id: d.id,
+              label: DECADE_LABELS[d.id] || d.id,
+            }))}
+            onSelect={handleDecadeSelect}
+          />
+        </View>
+
+        {/* Tab bar */}
+        <View
+          style={{
+            flexDirection: 'row',
+            paddingHorizontal: 20,
+            paddingTop: 20,
+            gap: 8,
+          }}
+        >
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  backgroundColor: isActive ? '#0095F6' : '#2A2A2A',
+                }}
+              >
+                <LucideIcon
+                  name={tab.icon}
+                  size={16}
+                  color={isActive ? '#FFFFFF' : '#9CA3AF'}
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isActive ? '#FFFFFF' : '#9CA3AF',
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Tab content */}
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, minHeight: 300 }}>
+          {activeTab === 'routine' && (
+            <RoutineWeeklyTable
+              routines={nodeRoutines}
+              weekOffset={weekOffset}
+              onWeekChange={setWeekOffset}
+              onToggle={toggleRoutineCheck}
+              onCreate={handleCreateRoutine}
+              onDelete={deleteRoutine}
+              onUpdateTitle={updateRoutineTitle}
+              onUpdateColor={updateRoutineColor}
+              onUpdateActiveDays={updateRoutineActiveDays}
+              onReorder={handleReorderRoutines}
+            />
+          )}
+          {activeTab === 'milestone' && (
+            <MilestoneList
+              milestones={page?.milestones ?? []}
+              onToggle={handleToggleMilestone}
+              onAdd={handleAddMilestone}
+              onDelete={handleDeleteMilestone}
+              onUpdateTitle={handleUpdateMilestoneTitle}
+              onReorder={handleReorderMilestones}
+            />
+          )}
+          {activeTab === 'data' && (
+            <CalendarDataView
+              routines={nodeRoutines}
+              milestones={page?.milestones ?? []}
+            />
+          )}
+        </View>
+      </Animated.ScrollView>
 
       {/* Upload progress overlay */}
       <UploadProgress visible={isUploading} progress={uploadProgress} />

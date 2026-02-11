@@ -90,7 +90,7 @@ export default function SettingsScreen() {
         </Pressable>
 
         {/* Subscription Button */}
-        <Pressable onPress={() => Alert.alert('Coming Soon')} className="active:opacity-80">
+        <Pressable onPress={() => router.push('/(main)/subscription/pricing' as never)} className="active:opacity-80">
           <LinearGradient
             colors={['#5A2B87', '#7B3FA0']}
             style={{

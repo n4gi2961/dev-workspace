@@ -142,10 +142,10 @@ export default function HomeScreen() {
     setCpOverrides((prev) => (Object.keys(prev).length > 0 ? {} : prev));
   }, [clearPercentMap]);
 
-  // Preload pages for all image nodes
+  // Preload pages for all image nodes (skip temp nodes not yet persisted)
   useEffect(() => {
     imageNodes.forEach((node) => {
-      if (!pages[node.id]) {
+      if (!node.id.startsWith('temp_') && !pages[node.id]) {
         getPage(node.id);
       }
     });
