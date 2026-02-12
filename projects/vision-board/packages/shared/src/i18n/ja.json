@@ -261,8 +261,27 @@
   },
   "tabs": {
     "home": "ホーム",
+    "timer": "タイマー",
     "focus": "フォーカス",
     "profile": "プロフィール"
+  },
+  "timer": {
+    "idle": {
+      "start": "スタート",
+      "defaultTitle": "フォーカスタイマー",
+      "tapRoutine": "フォーカス画面のルーティンから\nタイマーを開始できます"
+    },
+    "running": {
+      "pause": "一時停止",
+      "stop": "停止"
+    },
+    "paused": {
+      "resume": "再開"
+    },
+    "completed": {
+      "title": "完了！",
+      "tapToConfirm": "タップして記録"
+    }
   },
   "sidebar": {
     "title": "ボード一覧",
@@ -274,7 +293,11 @@
     "deleteConfirmMessage": "本当に削除しますか？この操作は取り消せません。",
     "cancel": "キャンセル",
     "editBoardTitle": "ボード名を編集",
-    "editBoardPlaceholder": "ボード名"
+    "editBoardPlaceholder": "ボード名",
+    "changeBackground": "ボードを変更"
+  },
+  "boardBackground": {
+    "title": "Board template"
   },
   "canvas": {
     "selectBoard": "ボードを選択してください",

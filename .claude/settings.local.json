@@ -61,8 +61,15 @@
       "mcp__supabase__execute_sql",
       "Bash(echo:*)",
       "Bash(pnpm install:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(pnpm add:*)",
+      "Bash(test:*)"
     ],
     "deny": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "cloudflare-bindings",
+    "cloudflare-observability",
+    "cloudflare-docs"
+  ]
 }

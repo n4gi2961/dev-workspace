@@ -28,6 +28,22 @@ interface PendingAction {
 const PENDING_QUEUE_KEY = 'nodes_pending_queue';
 const cacheKey = (boardId: string) => `nodes_cache_${boardId}`;
 
+// --- Module-level memory cache for instant board switching ---
+const nodesMemoryCache = new Map<string, Node[]>();
+
+export async function preloadBoardNodes(boardIds: string[]): Promise<void> {
+  const toLoad = boardIds.filter((id) => !nodesMemoryCache.has(id));
+  if (toLoad.length === 0) return;
+  await Promise.all(
+    toLoad.map(async (id) => {
+      try {
+        const cached = await AsyncStorage.getItem(cacheKey(id));
+        if (cached) nodesMemoryCache.set(id, JSON.parse(cached));
+      } catch {}
+    }),
+  );
+}
+
 async function loadCachedNodes(boardId: string): Promise<Node[] | null> {
   try {
     const cached = await AsyncStorage.getItem(cacheKey(boardId));
@@ -39,6 +55,7 @@ async function loadCachedNodes(boardId: string): Promise<Node[] | null> {
 }
 
 async function saveToCache(boardId: string, data: Node[]): Promise<void> {
+  nodesMemoryCache.set(boardId, data);
   try {
     await AsyncStorage.setItem(cacheKey(boardId), JSON.stringify(data));
   } catch (err) {
@@ -102,18 +119,28 @@ export function useNodes(boardId: string | null, userId: string | null, authToke
 
     const versionAtStart = stateVersionRef.current;
 
-    // Cache-first for instant UI
-    const cached = await loadCachedNodes(currentBoardId);
-    if (cached && stateVersionRef.current === versionAtStart) {
-      setNodes(cached);
+    // Memory cache first (synchronous — instant board switch)
+    const memoryCached = nodesMemoryCache.get(currentBoardId);
+    if (memoryCached && stateVersionRef.current === versionAtStart) {
+      setNodes(memoryCached);
       setLoading(false);
+    }
+
+    // AsyncStorage cache fallback (only if memory cache missed)
+    if (!memoryCached) {
+      const cached = await loadCachedNodes(currentBoardId);
+      if (cached && stateVersionRef.current === versionAtStart) {
+        setNodes(cached);
+        nodesMemoryCache.set(currentBoardId, cached);
+        setLoading(false);
+      }
     }
 
     // Check network
     const netState = await NetInfo.fetch();
     if (!netState.isConnected) {
       setIsOffline(true);
-      if (!cached) setLoading(false);
+      if (!memoryCached) setLoading(false);
       return;
     }
 
@@ -187,8 +214,11 @@ export function useNodes(boardId: string | null, userId: string | null, authToke
             if (action.data.content !== undefined) updateData.content = action.data.content;
             if (action.data.fontSize !== undefined) updateData.font_size = action.data.fontSize;
             if (action.data.color !== undefined) updateData.color = action.data.color;
+            if (action.data.fontFamily !== undefined) updateData.font_family = action.data.fontFamily;
             if (action.data.cornerRadius !== undefined) updateData.corner_radius = action.data.cornerRadius;
             if (action.data.src !== undefined) updateData.image_url = action.data.src;
+            if ('shape' in action.data) updateData.shape = action.data.shape ?? null;
+            if ('hoverFontSize' in action.data) updateData.hover_font_size = action.data.hoverFontSize ?? null;
             const { error } = await supabase
               .from('nodes')
               .update(updateData)
@@ -253,9 +283,16 @@ export function useNodes(boardId: string | null, userId: string | null, authToke
     });
   }, [loadNodes]);
 
-  // Initial load
+  // Initial load (synchronous swap from memory cache for instant board switch)
   useEffect(() => {
     if (boardId && userId) {
+      const cached = nodesMemoryCache.get(boardId);
+      if (cached) {
+        setNodes(cached);
+        setLoading(false);
+      } else {
+        setNodes([]);
+      }
       loadNodes();
       loadPendingCount();
     } else {
@@ -391,8 +428,11 @@ export function useNodes(boardId: string | null, userId: string | null, authToke
         if (updates.content !== undefined) updateData.content = updates.content;
         if (updates.fontSize !== undefined) updateData.font_size = updates.fontSize;
         if (updates.color !== undefined) updateData.color = updates.color;
+        if (updates.fontFamily !== undefined) updateData.font_family = updates.fontFamily;
         if (updates.cornerRadius !== undefined) updateData.corner_radius = updates.cornerRadius;
         if (updates.src !== undefined) updateData.image_url = updates.src;
+        if ('shape' in updates) updateData.shape = updates.shape ?? null;
+        if ('hoverFontSize' in updates) updateData.hover_font_size = updates.hoverFontSize ?? null;
 
         const { error } = await supabase
           .from('nodes')
@@ -529,7 +569,8 @@ export function useNodes(boardId: string | null, userId: string | null, authToke
       if (!node) return;
       const below = [...sortedNodes].reverse().find((n) => n.zIndex < node.zIndex);
       if (below) {
-        await updateNode(nodeId, { zIndex: below.zIndex });
+        const newZ = Math.max(1, below.zIndex);
+        await updateNode(nodeId, { zIndex: newZ });
         await updateNode(below.id, { zIndex: node.zIndex });
       }
     },
@@ -538,8 +579,10 @@ export function useNodes(boardId: string | null, userId: string | null, authToke
 
   const sendToBack = useCallback(
     async (nodeId: string) => {
-      const minZ = nodes.length > 0 ? Math.min(...nodes.map((n) => n.zIndex)) : 0;
-      await updateNode(nodeId, { zIndex: minZ - 1 });
+      const otherNodes = nodes.filter((n) => n.id !== nodeId);
+      const minZ = otherNodes.length > 0 ? Math.min(...otherNodes.map((n) => n.zIndex)) : 1;
+      // Minimum z_index of 1 to stay above board background
+      await updateNode(nodeId, { zIndex: Math.max(1, minZ - 1) });
     },
     [nodes, updateNode],
   );

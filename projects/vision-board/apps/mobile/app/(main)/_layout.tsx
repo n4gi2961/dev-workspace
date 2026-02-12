@@ -1,10 +1,14 @@
-import React, { useCallback } from 'react';
-import { View } from 'react-native';
-import { Stack } from 'expo-router';
+import React, { useCallback, useEffect } from 'react';
+import { View, InteractionManager } from 'react-native';
+import { Stack, router } from 'expo-router';
 import { NavigationProvider, useNavigation } from '../../contexts/navigation';
+import { TimerProvider } from '../../contexts/timer';
 import { Sidebar } from '../../components/ui/Sidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { useBoards } from '../../hooks/useBoards';
+import { preloadBoardNodes } from '../../hooks/useNodes';
+import { preloadBoardRoutines } from '../../hooks/useRoutines';
+import { preloadBoardViewports } from '../../components/canvas/BoardCanvas';
 import { useI18n } from '../../contexts/i18n';
 
 function MainLayoutContent() {
@@ -37,6 +41,25 @@ function MainLayoutContent() {
     await updateBoardTitle(boardId, title);
   }, [updateBoardTitle]);
 
+  const handleChangeBoardBackground = useCallback((boardId: string) => {
+    setDrawerOpen(false);
+    router.push(`/(main)/board-background/${boardId}`);
+  }, [setDrawerOpen]);
+
+  // Preload other boards' data after current board renders (background, lower priority)
+  useEffect(() => {
+    if (boards.length > 0 && selectedBoardId) {
+      const task = InteractionManager.runAfterInteractions(() => {
+        const otherIds = boards.map((b) => b.id).filter((id) => id !== selectedBoardId);
+        if (otherIds.length === 0) return;
+        preloadBoardNodes(otherIds);
+        preloadBoardRoutines(otherIds);
+        preloadBoardViewports(otherIds);
+      });
+      return () => task.cancel();
+    }
+  }, [boards, selectedBoardId]);
+
   return (
     <View className="flex-1">
       <Stack screenOptions={{ headerShown: false }}>
@@ -46,6 +69,15 @@ function MainLayoutContent() {
         <Stack.Screen name="subscription" />
         <Stack.Screen
           name="page/[nodeId]"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+            gestureEnabled: true,
+            gestureDirection: 'vertical',
+          }}
+        />
+        <Stack.Screen
+          name="board-background/[boardId]"
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',
@@ -64,6 +96,7 @@ function MainLayoutContent() {
         onCreateBoard={handleCreateBoard}
         onDeleteBoard={handleDeleteBoard}
         onUpdateBoardTitle={handleUpdateBoardTitle}
+        onChangeBoardBackground={handleChangeBoardBackground}
       />
     </View>
   );
@@ -72,7 +105,9 @@ function MainLayoutContent() {
 export default function MainLayout() {
   return (
     <NavigationProvider>
-      <MainLayoutContent />
+      <TimerProvider>
+        <MainLayoutContent />
+      </TimerProvider>
     </NavigationProvider>
   );
 }

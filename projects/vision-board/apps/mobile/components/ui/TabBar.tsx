@@ -1,16 +1,38 @@
+import React, { useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { LucideIcon } from './LucideIcon';
 import { colors } from '../../constants/Colors';
+import { useNavigation } from '../../contexts/navigation';
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { tabBarVisible } = useNavigation();
+
+  const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    translateY.value = withTiming(tabBarVisible ? 0 : 150, {
+      duration: 300,
+      easing: Easing.inOut(Easing.ease),
+    });
+  }, [tabBarVisible, translateY]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   return (
-    <View className="absolute bottom-0 left-0 right-0">
+    <Animated.View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0 }, animatedStyle]}>
       {/* Top gradient fade */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.25)']}
@@ -81,6 +103,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           })}
         </View>
       </BlurView>
-    </View>
+    </Animated.View>
   );
 }

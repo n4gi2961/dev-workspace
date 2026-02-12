@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import PagerView from 'react-native-pager-view';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { Plus, Check, Circle, CheckCircle2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTodayString } from '@vision-board/shared/lib';
@@ -19,12 +20,17 @@ import { useClearPercent } from '@vision-board/shared';
 import type { Routine, Milestone } from '@vision-board/shared/lib';
 import { useAuth } from '../../../hooks/useAuth';
 import { useNavigation } from '../../../contexts/navigation';
+import { useTimer } from '../../../contexts/timer';
 import { useNodes, type Node } from '../../../hooks/useNodes';
 import { usePages } from '../../../hooks/usePages';
 import { useRoutines } from '../../../hooks/useRoutines';
 import { useFocusEffects } from '../../../hooks/useFocusEffects';
 import { RippleEffect } from '../../../components/focus/RippleEffect';
 import { MeteorEffect } from '../../../components/focus/MeteorEffect';
+import {
+  parseTimerMinutes,
+  parseTimerParts,
+} from '../../../lib/parseTimerMinutes';
 
 // --- Utilities ---
 
@@ -63,11 +69,13 @@ function FocusOverlay({
   data,
   today,
   onToggleRoutine,
+  onStartTimer,
   screenHeight,
 }: {
   data: OverlayData;
   today: string;
   onToggleRoutine: (routine: Routine, event: GestureResponderEvent) => void;
+  onStartTimer: (routine: Routine) => void;
   screenHeight: number;
 }) {
   const insets = useSafeAreaInsets();
@@ -152,6 +160,7 @@ function FocusOverlay({
             </Text>
             {activeRoutines.map((routine) => {
               const isChecked = !!routine.history[today];
+              const timerParts = parseTimerParts(routine.title);
               return (
                 <TouchableOpacity
                   key={routine.id}
@@ -183,7 +192,23 @@ function FocusOverlay({
                       opacity: isChecked ? 0.6 : 1,
                     }}
                   >
-                    {routine.title}
+                    {timerParts ? (
+                      <>
+                        {timerParts.before}
+                        <Text
+                          onPress={() => onStartTimer(routine)}
+                          style={{
+                            color: '#0095F6',
+                            fontWeight: '700',
+                          }}
+                        >
+                          {timerParts.number}
+                        </Text>
+                        {timerParts.after}
+                      </>
+                    ) : (
+                      routine.title
+                    )}
                   </Text>
                 </TouchableOpacity>
               );
@@ -378,6 +403,7 @@ const METEOR_CHANCE = 0.05;
 export default function FocusScreen() {
   const { user, session } = useAuth();
   const { selectedBoardId } = useNavigation();
+  const { setupTimer } = useTimer();
   const { nodes, loading, refresh: refreshNodes } = useNodes(
     selectedBoardId,
     user?.id ?? null,
@@ -522,6 +548,18 @@ export default function FocusScreen() {
     setOverlayVisible((prev) => !prev);
   }, []);
 
+  const handleStartTimer = useCallback(
+    (routine: Routine) => {
+      const minutes = parseTimerMinutes(routine.title) || 25;
+      setupTimer(
+        { id: routine.id, title: routine.title, color: routine.color },
+        minutes,
+      );
+      router.navigate('/(main)/(tabs)/timer');
+    },
+    [setupTimer],
+  );
+
   // Loading
   if (loading && shuffledNodes.length === 0) {
     return (
@@ -624,6 +662,7 @@ export default function FocusScreen() {
           data={overlayData}
           today={today}
           onToggleRoutine={handleToggleRoutine}
+          onStartTimer={handleStartTimer}
           screenHeight={screenHeight}
         />
       )}

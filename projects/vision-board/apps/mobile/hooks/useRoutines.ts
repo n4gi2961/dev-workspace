@@ -13,6 +13,29 @@ const CACHE_KEY_PREFIX = 'routines_cache_';
 const ROUTINE_NODES_CACHE_KEY_PREFIX = 'routine_nodes_cache_';
 const PENDING_QUEUE_KEY = 'routines_pending_queue';
 
+// --- Module-level memory cache for instant board switching ---
+const routinesMemoryCache = new Map<string, Record<string, Routine>>();
+const routineNodesMemoryCache = new Map<string, RoutineNode[]>();
+
+export async function preloadBoardRoutines(boardIds: string[]): Promise<void> {
+  await Promise.all(
+    boardIds.map(async (id) => {
+      if (!routinesMemoryCache.has(id)) {
+        try {
+          const c = await AsyncStorage.getItem(`${CACHE_KEY_PREFIX}${id}`);
+          if (c) routinesMemoryCache.set(id, JSON.parse(c));
+        } catch {}
+      }
+      if (!routineNodesMemoryCache.has(id)) {
+        try {
+          const c = await AsyncStorage.getItem(`${ROUTINE_NODES_CACHE_KEY_PREFIX}${id}`);
+          if (c) routineNodesMemoryCache.set(id, JSON.parse(c));
+        } catch {}
+      }
+    }),
+  );
+}
+
 interface PendingAction {
   type: 'check' | 'create' | 'delete' | 'update' | 'reorder';
   routineId?: string;
@@ -63,12 +86,13 @@ export function useRoutines(boardId: string | null, userId: string | null) {
 
   const saveRoutinesToCache = useCallback(async (data: Record<string, Routine>) => {
     if (!cacheKey) return;
+    if (boardId) routinesMemoryCache.set(boardId, data);
     try {
       await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
     } catch (err) {
       console.error('Failed to cache routines:', err);
     }
-  }, [cacheKey]);
+  }, [cacheKey, boardId]);
 
   const loadCachedRoutineNodes = useCallback(async () => {
     if (!routineNodesCacheKey) return null;
@@ -83,12 +107,13 @@ export function useRoutines(boardId: string | null, userId: string | null) {
 
   const saveRoutineNodesToCache = useCallback(async (data: RoutineNode[]) => {
     if (!routineNodesCacheKey) return;
+    if (boardId) routineNodesMemoryCache.set(boardId, data);
     try {
       await AsyncStorage.setItem(routineNodesCacheKey, JSON.stringify(data));
     } catch (err) {
       console.error('Failed to cache routine_nodes:', err);
     }
-  }, [routineNodesCacheKey]);
+  }, [routineNodesCacheKey, boardId]);
 
   // --- Pending queue ---
 
@@ -203,23 +228,38 @@ export function useRoutines(boardId: string | null, userId: string | null) {
 
     const versionAtStart = stateVersionRef.current;
 
-    // Load from cache first
-    const [cachedRoutines, cachedNodes] = await Promise.all([
-      loadCachedRoutines(),
-      loadCachedRoutineNodes(),
-    ]);
-    if (cachedRoutines && stateVersionRef.current === versionAtStart) {
-      setRoutines(cachedRoutines);
+    // Memory cache first (synchronous — instant board switch)
+    const memRoutines = boardId ? routinesMemoryCache.get(boardId) : null;
+    const memNodes = boardId ? routineNodesMemoryCache.get(boardId) : null;
+    if (memRoutines && stateVersionRef.current === versionAtStart) {
+      setRoutines(memRoutines);
       setLoading(false);
     }
-    if (cachedNodes && stateVersionRef.current === versionAtStart) {
-      setRoutineNodes(cachedNodes);
+    if (memNodes && stateVersionRef.current === versionAtStart) {
+      setRoutineNodes(memNodes);
+    }
+
+    // AsyncStorage cache fallback (only if memory cache missed)
+    if (!memRoutines || !memNodes) {
+      const [cachedRoutines, cachedNodes] = await Promise.all([
+        !memRoutines ? loadCachedRoutines() : null,
+        !memNodes ? loadCachedRoutineNodes() : null,
+      ]);
+      if (cachedRoutines && stateVersionRef.current === versionAtStart) {
+        setRoutines(cachedRoutines);
+        if (boardId) routinesMemoryCache.set(boardId, cachedRoutines);
+        setLoading(false);
+      }
+      if (cachedNodes && stateVersionRef.current === versionAtStart) {
+        setRoutineNodes(cachedNodes);
+        if (boardId) routineNodesMemoryCache.set(boardId, cachedNodes);
+      }
     }
 
     const netState = await NetInfo.fetch();
     if (!netState.isConnected) {
       setIsOffline(true);
-      if (!cachedRoutines) setLoading(false);
+      if (!memRoutines) setLoading(false);
       return;
     }
 
@@ -284,8 +324,18 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     });
   }, [boardId, userId, loadRoutines]);
 
+  // Initial load (synchronous swap from memory cache for instant board switch)
   useEffect(() => {
     if (boardId && userId) {
+      const cachedR = routinesMemoryCache.get(boardId);
+      const cachedRN = routineNodesMemoryCache.get(boardId);
+      if (cachedR) {
+        setRoutines(cachedR);
+        setLoading(false);
+      } else {
+        setRoutines({});
+      }
+      setRoutineNodes(cachedRN || []);
       loadRoutines();
       loadPendingCount();
     }

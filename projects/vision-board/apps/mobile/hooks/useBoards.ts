@@ -15,12 +15,14 @@ export interface Board {
   created_at: string;
   updated_at: string;
   node_count?: number;
+  background_type?: string;
 }
 
 interface PendingAction {
-  type: 'create' | 'delete' | 'update_title';
+  type: 'create' | 'delete' | 'update_title' | 'update_background';
   boardId?: string;
   title?: string;
+  backgroundType?: string;
   timestamp: number;
   tempId?: string;
 }
@@ -113,7 +115,7 @@ export function useBoards(userId: string | null) {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('boards')
-        .select('id, name, user_id, created_at, updated_at, nodes(count)')
+        .select('id, name, user_id, created_at, updated_at, background_type, nodes(count)')
         .eq('user_id', currentUserId)
         .order('updated_at', { ascending: false });
 
@@ -124,12 +126,13 @@ export function useBoards(userId: string | null) {
       }
 
       // Map DB "name" to interface "title" and extract node count
-      const boardsList = (data || []).map((b: { id: string; name: string; user_id: string; created_at: string; updated_at: string; nodes?: { count: number }[] }) => ({
+      const boardsList = (data || []).map((b: { id: string; name: string; user_id: string; created_at: string; updated_at: string; background_type?: string; nodes?: { count: number }[] }) => ({
         id: b.id,
         title: b.name,
         user_id: b.user_id,
         created_at: b.created_at,
         updated_at: b.updated_at,
+        background_type: b.background_type || 'default',
         node_count: b.nodes?.[0]?.count || 0,
       })) as Board[];
       // Only update state if no newer optimistic updates occurred
@@ -185,6 +188,12 @@ export function useBoards(userId: string | null) {
             const { error } = await supabase
               .from('boards')
               .update({ name: action.title, updated_at: new Date().toISOString() })
+              .eq('id', action.boardId);
+            if (!error) successfulIndices.push(i);
+          } else if (action.type === 'update_background' && action.boardId && action.backgroundType) {
+            const { error } = await supabase
+              .from('boards')
+              .update({ background_type: action.backgroundType, updated_at: new Date().toISOString() })
               .eq('id', action.boardId);
             if (!error) successfulIndices.push(i);
           }
@@ -449,6 +458,97 @@ export function useBoards(userId: string | null) {
     []
   );
 
+  const updateBoardBackground = useCallback(
+    async (boardId: string, backgroundType: string): Promise<boolean> => {
+      const currentUserId = userIdRef.current;
+      if (!currentUserId) return false;
+
+      const now = new Date().toISOString();
+
+      // Optimistic update
+      stateVersionRef.current += 1;
+      const optimisticBoards = boardsRef.current.map((b) =>
+        b.id === boardId ? { ...b, background_type: backgroundType, updated_at: now } : b
+      );
+      setBoards(optimisticBoards);
+      await saveToCacheHelper(optimisticBoards);
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        const count = await addToPendingQueueHelper({
+          type: 'update_background',
+          boardId,
+          backgroundType,
+          timestamp: Date.now(),
+        });
+        setPendingCount(count);
+        dataEvents.emit('boards:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('boards')
+          .update({ background_type: backgroundType, updated_at: now })
+          .eq('id', boardId);
+
+        if (error) throw error;
+        dataEvents.emit('boards:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        const count = await addToPendingQueueHelper({
+          type: 'update_background',
+          boardId,
+          backgroundType,
+          timestamp: Date.now(),
+        });
+        setPendingCount(count);
+        dataEvents.emit('boards:changed', instanceIdRef.current);
+        console.error('Failed to update board background, queued for sync:', err);
+        return true;
+      }
+    },
+    []
+  );
+
+  // Debounced settings update to Supabase (viewport etc.)
+  const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const updateBoardSettings = useCallback(
+    (boardId: string, settings: Record<string, unknown>) => {
+      const currentUserId = userIdRef.current;
+      if (!currentUserId) return;
+
+      // Debounce: only send to Supabase after 2s of inactivity
+      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+      settingsTimerRef.current = setTimeout(async () => {
+        try {
+          const supabase = createClient();
+          // Read current settings, merge, and write back
+          const { data } = await supabase
+            .from('boards')
+            .select('settings')
+            .eq('id', boardId)
+            .single();
+
+          const current = (data?.settings as Record<string, unknown>) || {};
+          const merged = { ...current, ...settings };
+
+          await supabase
+            .from('boards')
+            .update({ settings: merged })
+            .eq('id', boardId);
+        } catch (err) {
+          console.error('Failed to update board settings:', err);
+        }
+      }, 2000);
+    },
+    []
+  );
+
   const getBoard = useCallback(
     (boardId: string): Board | undefined => {
       return boards.find((b) => b.id === boardId);
@@ -464,6 +564,8 @@ export function useBoards(userId: string | null) {
     createBoard,
     deleteBoard,
     updateBoardTitle,
+    updateBoardBackground,
+    updateBoardSettings,
     getBoard,
     refresh: loadBoards,
     syncPending: syncPendingActions,

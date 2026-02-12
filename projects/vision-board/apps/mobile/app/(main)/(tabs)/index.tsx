@@ -18,6 +18,8 @@ import { useRoutines } from '../../../hooks/useRoutines';
 import { useImageUpload } from '../../../hooks/useImageUpload';
 import { useI18n } from '../../../contexts/i18n';
 import { useNavigation } from '../../../contexts/navigation';
+import { useTimer } from '../../../contexts/timer';
+import { parseTimerMinutes } from '../../../lib/parseTimerMinutes';
 import { TopBar } from '../../../components/ui/TopBar';
 import { LucideIcon } from '../../../components/ui/LucideIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -65,9 +67,11 @@ export default function HomeScreen() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { toggleDrawer, selectedBoardId, setSelectedBoardId, setTabBarVisible } = useNavigation();
+  const { setupTimer } = useTimer();
   const [canvasMode, setCanvasMode] = useState<CanvasMode>('view');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isTextEditorOpen, setIsTextEditorOpen] = useState(false);
   const tabBarHeight = TAB_BAR_CONTENT_HEIGHT + insets.bottom;
 
   const today = useMemo(() => getTodayString(), []);
@@ -79,7 +83,7 @@ export default function HomeScreen() {
     setTabBarVisible(true);
   }, [selectedBoardId, setTabBarVisible]);
 
-  const { boards, createBoard, getBoard, refresh: refreshBoards } = useBoards(user?.id ?? null);
+  const { boards, createBoard, getBoard, updateBoardSettings, refresh: refreshBoards } = useBoards(user?.id ?? null);
   const {
     nodes,
     loading,
@@ -153,6 +157,7 @@ export default function HomeScreen() {
 
   // --- Overlay state management ---
   const [overlayNodeIds, setOverlayNodeIds] = useState<string[]>([]);
+  const overlayNodeIdSet = useMemo(() => new Set(overlayNodeIds), [overlayNodeIds]);
 
   const handleToggleNodeOverlay = useCallback((nodeId: string) => {
     setOverlayNodeIds((prev) =>
@@ -174,22 +179,32 @@ export default function HomeScreen() {
     for (const nodeId of overlayNodeIds) {
       const page = pages[nodeId];
       const nodeRoutines = getRoutinesForNode(nodeId).filter(isRoutineActiveToday);
+      const node = nodes.find((n) => n.id === nodeId);
       map[nodeId] = {
         title: page?.title || '',
         routines: nodeRoutines,
         milestones: page?.milestones || [],
         clearPercent: cpOverrides[nodeId] ?? clearPercentMap[nodeId] ?? 100,
+        hoverFontSize: node?.hoverFontSize,
       };
     }
     return map;
-  }, [overlayNodeIds, pages, getRoutinesForNode, isRoutineActiveToday, cpOverrides, clearPercentMap]);
+  }, [overlayNodeIds, pages, getRoutinesForNode, isRoutineActiveToday, cpOverrides, clearPercentMap, nodes]);
+
+  // Refs for stable callback access (avoid re-render cascade)
+  const cpOverridesRef = useRef(cpOverrides);
+  cpOverridesRef.current = cpOverrides;
+  const clearPercentMapRef = useRef(clearPercentMap);
+  clearPercentMapRef.current = clearPercentMap;
+  const overlayDataMapRef = useRef(overlayDataMap);
+  overlayDataMapRef.current = overlayDataMap;
 
   const handleOverlayToggleRoutine = useCallback(
     (nodeId: string, routine: Routine) => {
       const isChecking = !routine.history[today];
       if (isChecking) {
-        const currentCp = cpOverrides[nodeId] ?? clearPercentMap[nodeId] ?? 100;
-        const data = overlayDataMap[nodeId];
+        const currentCp = cpOverridesRef.current[nodeId] ?? clearPercentMapRef.current[nodeId] ?? 100;
+        const data = overlayDataMapRef.current[nodeId];
         if (data) {
           const newCp = calculateAfterToggle(
             currentCp, data.routines, [], routine.id, today, true,
@@ -199,7 +214,7 @@ export default function HomeScreen() {
       }
       toggleRoutineCheck(routine.id, today);
     },
-    [today, cpOverrides, clearPercentMap, overlayDataMap, calculateAfterToggle, toggleRoutineCheck],
+    [today, calculateAfterToggle, toggleRoutineCheck],
   );
 
   // Refresh data when screen gains focus (tab switch, back navigation)
@@ -303,7 +318,7 @@ export default function HomeScreen() {
     }
   }, [selectedBoardId, t, addNode, updateNode, nodes.length, pickImage, uploadImage]);
 
-  const handleAddText = useCallback(() => {
+  const handleAddText = useCallback(async () => {
     if (!selectedBoardId) {
       Alert.alert(
         t.canvas?.selectBoard || 'ボードを選択してください',
@@ -312,18 +327,23 @@ export default function HomeScreen() {
       return;
     }
     const center = canvasRef.current?.getViewportCenter() ?? { x: 4800, y: 2700 };
-    addNode({
+    const newNode = await addNode({
       type: 'text',
       x: center.x - 100,
       y: center.y - 30,
       width: 200,
       height: 60,
       zIndex: nodes.length,
-      content: 'テキスト',
+      content: '',
       fontSize: 24,
       color: '#FFFFFF',
     });
-  }, [selectedBoardId, t, addNode, nodes.length]);
+    if (newNode) {
+      selectNode(newNode.id);
+      // Wait for selection to propagate, then open text editor
+      setTimeout(() => canvasRef.current?.openTextEditor(), 100);
+    }
+  }, [selectedBoardId, t, addNode, nodes.length, selectNode]);
 
   const handleDoneEditing = useCallback(() => {
     selectNode(null);
@@ -338,6 +358,23 @@ export default function HomeScreen() {
   const handleLongPressNode = useCallback((nodeId: string) => {
     router.push(`/(main)/page/${nodeId}`);
   }, []);
+
+  const handleOverlayStartTimer = useCallback(
+    (routine: Routine) => {
+      const minutes = parseTimerMinutes(routine.title) || 25;
+      setupTimer(
+        { id: routine.id, title: routine.title, color: routine.color },
+        minutes,
+      );
+      router.navigate('/(main)/(tabs)/timer');
+    },
+    [setupTimer],
+  );
+
+  const handleSaveViewport = useCallback((viewport: { scale: number; translateX: number; translateY: number }) => {
+    if (!selectedBoardId) return;
+    updateBoardSettings(selectedBoardId, { viewport });
+  }, [selectedBoardId, updateBoardSettings]);
 
   const handleCreateBoard = useCallback(async () => {
     const newBoard = await createBoard(t.board?.newBoardDefault);
@@ -380,14 +417,18 @@ export default function HomeScreen() {
           onSendBackward={sendBackward}
           onSendToBack={sendToBack}
           onOpenPage={handleOpenPage}
-          overlayNodeIds={overlayNodeIds}
+          overlayNodeIds={overlayNodeIdSet}
           overlayDataMap={overlayDataMap}
           onToggleNodeOverlay={handleToggleNodeOverlay}
           onOverlayToggleRoutine={handleOverlayToggleRoutine}
+          onOverlayStartTimer={handleOverlayStartTimer}
           today={today}
           showZoomIndicator={!isFullscreen}
           onLongPressNode={handleLongPressNode}
           onDoubleTapCanvas={handleToggleAllOverlays}
+          backgroundType={selectedBoard?.background_type}
+          onSaveViewport={handleSaveViewport}
+          onTextEditorVisibleChange={setIsTextEditorOpen}
         />
       </ViewShot>
 
@@ -458,8 +499,8 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* FAB Menu (edit mode, not fullscreen) */}
-      {!isFullscreen && selectedBoardId && canvasMode === 'edit' && (
+      {/* FAB Menu (edit mode, not fullscreen, not during text editing) */}
+      {!isFullscreen && selectedBoardId && canvasMode === 'edit' && !isTextEditorOpen && (
         <FABMenu onAddImage={handleAddImage} onAddText={handleAddText} onDone={handleDoneEditing} />
       )}
     </View>

@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Check, Circle, CheckCircle2 } from 'lucide-react-native';
 import type { Routine, Milestone } from '@vision-board/shared/lib';
+import { parseTimerParts } from '../../lib/parseTimerMinutes';
 
 export interface OverlayData {
   title: string;
   routines: Routine[];
   milestones: Milestone[];
   clearPercent: number;
+  hoverFontSize?: string;
 }
 
 interface NodeOverlayProps {
@@ -17,6 +19,7 @@ interface NodeOverlayProps {
   cornerRadius?: number;
   today: string;
   onToggleRoutine: (routine: Routine) => void;
+  onStartTimer?: (routine: Routine) => void;
 }
 
 export function NodeOverlay({
@@ -26,12 +29,14 @@ export function NodeOverlay({
   cornerRadius = 12,
   today,
   onToggleRoutine,
+  onStartTimer,
 }: NodeOverlayProps) {
   const completedMilestones = data.milestones.filter((m) => m.completed);
   const pendingMilestones = data.milestones.filter((m) => !m.completed);
 
-  // Scale font sizes based on node size (min 200px width baseline)
-  const scaleFactor = Math.max(nodeWidth / 250, 0.6);
+  // Scale font sizes based on node size and hoverFontSize setting
+  const fontSizeMultiplier = data.hoverFontSize === 'large' ? 1.3 : data.hoverFontSize === 'small' ? 0.7 : 1.0;
+  const scaleFactor = Math.max(nodeWidth / 250, 0.6) * fontSizeMultiplier;
   const titleSize = Math.round(18 * scaleFactor);
   const labelSize = Math.round(11 * scaleFactor);
   const routineSize = Math.round(13 * scaleFactor);
@@ -77,6 +82,7 @@ export function NodeOverlay({
             </Text>
             {data.routines.map((routine) => {
               const isChecked = !!routine.history[today];
+              const timerParts = onStartTimer ? parseTimerParts(routine.title) : null;
               return (
                 <TouchableOpacity
                   key={routine.id}
@@ -94,14 +100,27 @@ export function NodeOverlay({
                       styles.routineText,
                       {
                         fontSize: routineSize,
-                        marginLeft: padding * 0.8,
+                        marginLeft: padding * 0.8 + routineSize * 0.5,
                         textDecorationLine: isChecked ? 'line-through' : 'none',
                         opacity: isChecked ? 0.6 : 1,
                       },
                     ]}
                     numberOfLines={1}
                   >
-                    {routine.title}
+                    {timerParts ? (
+                      <>
+                        {timerParts.before}
+                        <Text
+                          onPress={() => onStartTimer!(routine)}
+                          style={{ color: '#0095F6', fontWeight: '700' }}
+                        >
+                          {timerParts.number}
+                        </Text>
+                        {timerParts.after}
+                      </>
+                    ) : (
+                      routine.title
+                    )}
                   </Text>
                 </TouchableOpacity>
               );

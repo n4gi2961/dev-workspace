@@ -261,8 +261,27 @@
   },
   "tabs": {
     "home": "Home",
+    "timer": "Timer",
     "focus": "Focus",
     "profile": "Profile"
+  },
+  "timer": {
+    "idle": {
+      "start": "Start",
+      "defaultTitle": "Focus Timer",
+      "tapRoutine": "Start a timer from routines\nin the Focus tab"
+    },
+    "running": {
+      "pause": "Pause",
+      "stop": "Stop"
+    },
+    "paused": {
+      "resume": "Resume"
+    },
+    "completed": {
+      "title": "Complete!",
+      "tapToConfirm": "Tap to confirm"
+    }
   },
   "sidebar": {
     "title": "Boards",
@@ -274,7 +293,11 @@
     "deleteConfirmMessage": "Are you sure you want to delete this board? This action cannot be undone.",
     "cancel": "Cancel",
     "editBoardTitle": "Edit Board Name",
-    "editBoardPlaceholder": "Board name"
+    "editBoardPlaceholder": "Board name",
+    "changeBackground": "Change Board"
+  },
+  "boardBackground": {
+    "title": "Board template"
   },
   "canvas": {
     "selectBoard": "Select a board",

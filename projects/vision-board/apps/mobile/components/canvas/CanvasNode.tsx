@@ -30,6 +30,7 @@ interface CanvasNodeProps {
   overlayData?: OverlayData;
   onToggleOverlay?: (nodeId: string) => void;
   onOverlayToggleRoutine?: (nodeId: string, routine: Routine) => void;
+  onOverlayStartTimer?: (routine: Routine) => void;
   today?: string;
   onLongPress?: (nodeId: string) => void;
 }
@@ -37,11 +38,30 @@ interface CanvasNodeProps {
 // Resize handle positions
 type HandlePosition = 'tl' | 'tr' | 'bl' | 'br' | 'tm' | 'bm' | 'ml' | 'mr';
 
+/** Parse node.shape string to numeric width/height ratio (0 = free) */
+function parseLockedRatio(shape: string | undefined): number {
+  'worklet';
+  if (!shape || shape === 'free') return 0;
+  switch (shape) {
+    case 'portrait': return 3 / 4;
+    case 'square': return 1;
+    case 'landscape': return 4 / 3;
+    default:
+      // Handle "orig:1.3333" format
+      if (shape.startsWith('orig:')) {
+        const val = parseFloat(shape.substring(5));
+        return val > 0 ? val : 0;
+      }
+      return 0;
+  }
+}
+
 function ResizeHandle({
   position,
   nodeWidth,
   nodeHeight,
   scale,
+  lockedRatio,
   resizeW,
   resizeH,
   resizeOx,
@@ -52,6 +72,7 @@ function ResizeHandle({
   nodeWidth: number;
   nodeHeight: number;
   scale: SharedValue<number>;
+  lockedRatio: number;
   resizeW: SharedValue<number>;
   resizeH: SharedValue<number>;
   resizeOx: SharedValue<number>;
@@ -92,6 +113,25 @@ function ResizeHandle({
       if (position.includes('l')) { dw = -dx; ox = dx; }
       if (position.includes('b')) { dh = dy; }
       if (position.includes('t')) { dh = -dy; oy = dy; }
+
+      // Aspect ratio lock
+      if (lockedRatio > 0) {
+        if (position === 'tm' || position === 'bm') {
+          // Height drives width
+          const newH = Math.max(40, nodeHeight + dh);
+          const newW = newH * lockedRatio;
+          dw = newW - nodeWidth;
+        } else {
+          // Width drives height (corners + ml/mr)
+          const newW = Math.max(40, nodeWidth + dw);
+          const newH = newW / lockedRatio;
+          dh = newH - nodeHeight;
+          if (position.includes('t')) {
+            oy = -(dh);
+          }
+        }
+      }
+
       resizeW.value = dw;
       resizeH.value = dh;
       resizeOx.value = ox;
@@ -218,6 +258,7 @@ export const CanvasNode = React.memo(function CanvasNode({
   overlayData,
   onToggleOverlay,
   onOverlayToggleRoutine,
+  onOverlayStartTimer,
   today,
   onLongPress,
 }: CanvasNodeProps) {
@@ -244,9 +285,6 @@ export const CanvasNode = React.memo(function CanvasNode({
           height: node.height,
           zIndex: node.zIndex,
         }}
-        // GPU rasterization for smooth pan/zoom (disabled when overlay is active for interactivity)
-        shouldRasterizeIOS={!overlayActive}
-        renderToHardwareTextureAndroid={!overlayActive}
       >
         <NodeContent node={node} overlayActive={overlayActive} overlayData={overlayData} />
 
@@ -259,6 +297,7 @@ export const CanvasNode = React.memo(function CanvasNode({
             cornerRadius={node.cornerRadius}
             today={today ?? ''}
             onToggleRoutine={(routine) => onOverlayToggleRoutine?.(node.id, routine)}
+            onStartTimer={onOverlayStartTimer}
           />
         )}
       </Pressable>
@@ -363,6 +402,15 @@ function EditModeNode({
       runOnJS(handleDoubleTapJS)();
     });
 
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(400)
+    .enabled(node.type === 'text')
+    .onEnd((_, success) => {
+      if (success) {
+        runOnJS(handleDoubleTapJS)();
+      }
+    });
+
   const panGesture = Gesture.Pan()
     .enabled(isSelected)
     .onUpdate((event) => {
@@ -376,6 +424,7 @@ function EditModeNode({
 
   const composedGesture = Gesture.Race(
     doubleTapGesture,
+    longPressGesture,
     Gesture.Simultaneous(tapGesture, panGesture),
   );
 
@@ -427,6 +476,7 @@ function EditModeNode({
                   nodeWidth={node.width}
                   nodeHeight={node.height}
                   scale={scale}
+                  lockedRatio={parseLockedRatio(node.shape)}
                   resizeW={resizeW}
                   resizeH={resizeH}
                   resizeOx={resizeOx}

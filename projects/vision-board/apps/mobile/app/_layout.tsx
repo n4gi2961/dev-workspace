@@ -2,6 +2,10 @@ import 'react-native-url-polyfill/auto'; // Must be first for Supabase
 import '../global.css';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { NotoSansJP_400Regular, NotoSansJP_700Bold } from '@expo-google-fonts/noto-sans-jp';
+import { NotoSerifJP_400Regular } from '@expo-google-fonts/noto-serif-jp';
+import { MPLUSRounded1c_400Regular } from '@expo-google-fonts/m-plus-rounded-1c';
+import { ZenMaruGothic_400Regular } from '@expo-google-fonts/zen-maru-gothic';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack, useSegments, router } from 'expo-router';
@@ -43,6 +47,11 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
+    NotoSansJP_400Regular,
+    NotoSansJP_700Bold,
+    NotoSerifJP_400Regular,
+    MPLUSRounded1c_400Regular,
+    ZenMaruGothic_400Regular,
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.

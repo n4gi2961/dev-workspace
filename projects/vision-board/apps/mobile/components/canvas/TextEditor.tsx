@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  withSpring,
+  withTiming,
   useSharedValue,
+  Easing,
 } from 'react-native-reanimated';
 import { LucideIcon } from '../ui/LucideIcon';
 import { colors } from '../../constants/Colors';
 import type { Node } from '../../hooks/useNodes';
+import { TEXT_FONTS } from './NodeToolbar';
 
 interface TextEditorProps {
   node: Node;
@@ -19,15 +21,9 @@ interface TextEditorProps {
 
 const FONT_SIZE_OPTIONS = [14, 18, 24, 32, 48, 64];
 
-const COLOR_OPTIONS = [
-  '#FFFFFF',
-  '#D1D5DB',
-  '#3B82F6',
-  '#EF4444',
-  '#10B981',
-  '#F59E0B',
-  '#8B5CF6',
-  '#EC4899',
+const COLOR_ROWS = [
+  ['#FFFFFF', '#9E9E9E', '#1C1C1E', '#00BCD4', '#E91E8C', '#9C27B0'],
+  ['#F44336', '#FF9800', '#FFEB3B', '#4CAF50', '#2196F3', '#009688'],
 ];
 
 export function TextEditor({
@@ -42,14 +38,14 @@ export function TextEditor({
   const translateY = useSharedValue(visible ? 0 : 400);
 
   useEffect(() => {
-    translateY.value = withSpring(visible ? 0 : 400, {
-      damping: 20,
-      stiffness: 150,
+    translateY.value = withTiming(visible ? 0 : 400, {
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
     });
     if (visible) {
       setText(node.content || '');
       // Auto-focus the input
-      setTimeout(() => inputRef.current?.focus(), 300);
+      setTimeout(() => inputRef.current?.focus(), 200);
     }
   }, [visible, node.content, translateY]);
 
@@ -116,6 +112,7 @@ export function TextEditor({
           marginBottom: 16,
           minHeight: 80,
           textAlignVertical: 'top',
+          fontFamily: node.fontFamily,
         }}
         multiline
         placeholder="テキストを入力..."
@@ -172,24 +169,79 @@ export function TextEditor({
         </Pressable>
       </View>
 
-      {/* Color selection */}
+      {/* Font family selection */}
+      <Text style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
+        フォント
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginBottom: 16 }}
+        contentContainerStyle={{ gap: 8 }}
+      >
+        {TEXT_FONTS.map((font) => {
+          const isActive = (node.fontFamily || undefined) === font.value;
+          return (
+            <Pressable
+              key={font.label}
+              onPress={() => onUpdateNode({ fontFamily: font.value })}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 10,
+                backgroundColor: isActive ? colors.accent.primary : '#2C2C2E',
+                borderWidth: isActive ? 0 : 1,
+                borderColor: '#3A3A3C',
+              }}
+            >
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 14,
+                  fontFamily: font.value,
+                }}
+              >
+                {font.preview}
+              </Text>
+              <Text
+                style={{
+                  color: isActive ? '#E0E0E0' : '#9CA3AF',
+                  fontSize: 10,
+                  marginTop: 2,
+                }}
+              >
+                {font.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Color selection — 12 colors in 2 rows */}
       <Text style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
         テキスト色
       </Text>
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-        {COLOR_OPTIONS.map((c) => (
-          <Pressable
-            key={c}
-            onPress={() => onUpdateNode({ color: c })}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: c,
-              borderWidth: (node.color || '#FFFFFF') === c ? 3 : 1,
-              borderColor: (node.color || '#FFFFFF') === c ? colors.accent.primary : '#4A4A4C',
-            }}
-          />
+      <View style={{ gap: 10, marginBottom: 20 }}>
+        {COLOR_ROWS.map((row, rowIndex) => (
+          <View key={rowIndex} style={{ flexDirection: 'row', gap: 10 }}>
+            {row.map((c) => {
+              const isActive = (node.color || '#FFFFFF').toUpperCase() === c.toUpperCase();
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => onUpdateNode({ color: c })}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: c,
+                    borderWidth: isActive ? 3 : c === '#1C1C1E' ? 1 : 0,
+                    borderColor: isActive ? colors.accent.primary : '#555555',
+                  }}
+                />
+              );
+            })}
+          </View>
         ))}
       </View>
 

@@ -31,6 +31,7 @@ interface SidebarProps {
   onCreateBoard: () => void;
   onDeleteBoard?: (boardId: string) => void;
   onUpdateBoardTitle?: (boardId: string, title: string) => void;
+  onChangeBoardBackground?: (boardId: string) => void;
 }
 
 const BOARD_COLORS = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#00a8fc', '#9b59b6', '#1abc9c'];
@@ -65,6 +66,7 @@ export function Sidebar({
   onCreateBoard,
   onDeleteBoard,
   onUpdateBoardTitle,
+  onChangeBoardBackground,
 }: SidebarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
@@ -127,19 +129,21 @@ export function Sidebar({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const editLabel = t.sidebar?.editName || 'Edit Name';
+    const changeBgLabel = t.sidebar?.changeBackground || 'Change Board';
     const deleteLabel = t.sidebar?.delete || 'Delete';
     const cancelLabel = t.sidebar?.cancel || 'Cancel';
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [cancelLabel, editLabel, deleteLabel],
-          destructiveButtonIndex: 2,
+          options: [cancelLabel, editLabel, changeBgLabel, deleteLabel],
+          destructiveButtonIndex: 3,
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) startEditing(board);
-          if (buttonIndex === 2) showDeleteConfirm(board);
+          if (buttonIndex === 2) onChangeBoardBackground?.(board.id);
+          if (buttonIndex === 3) showDeleteConfirm(board);
         },
       );
     } else {
@@ -150,6 +154,7 @@ export function Sidebar({
         [
           { text: cancelLabel, style: 'cancel' },
           { text: editLabel, onPress: () => startEditing(board) },
+          { text: changeBgLabel, onPress: () => onChangeBoardBackground?.(board.id) },
           { text: deleteLabel, style: 'destructive', onPress: () => showDeleteConfirm(board) },
         ],
       );

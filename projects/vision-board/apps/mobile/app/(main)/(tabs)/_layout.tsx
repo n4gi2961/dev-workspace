@@ -2,16 +2,14 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 
 import { useI18n } from '../../../contexts/i18n';
-import { useNavigation } from '../../../contexts/navigation';
 import { TabBar } from '../../../components/ui/TabBar';
 
 export default function TabLayout() {
   const { t } = useI18n();
-  const { tabBarVisible } = useNavigation();
 
   return (
     <Tabs
-      tabBar={(props) => tabBarVisible ? <TabBar {...props} /> : null}
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}
@@ -21,6 +19,13 @@ export default function TabLayout() {
         options={{
           title: t.tabs?.home || 'Home',
           tabBarIconName: 'house',
+        } as Record<string, unknown>}
+      />
+      <Tabs.Screen
+        name="timer"
+        options={{
+          title: t.tabs?.timer || 'Timer',
+          tabBarIconName: 'timer',
         } as Record<string, unknown>}
       />
       <Tabs.Screen
