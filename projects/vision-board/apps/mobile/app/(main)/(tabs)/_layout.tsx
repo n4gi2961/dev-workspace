@@ -42,6 +42,13 @@ export default function TabLayout() {
           tabBarIconName: 'user',
         } as Record<string, unknown>}
       />
+      <Tabs.Screen
+        name="debug"
+        options={{
+          title: 'Debug',
+          tabBarIconName: 'bug',
+        } as Record<string, unknown>}
+      />
     </Tabs>
   );
 }

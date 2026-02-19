@@ -6,7 +6,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LucideIcon } from '../ui/LucideIcon';
 import type { Node } from '../../hooks/useNodes';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './BoardCanvas';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './canvasConstants';
 
 const IMAGE_TOOLBAR_WIDTH = 220;
 const TEXT_TOOLBAR_WIDTH = 260;

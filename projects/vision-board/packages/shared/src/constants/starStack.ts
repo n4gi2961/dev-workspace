@@ -82,6 +82,17 @@ export const STAR_STACK_CONFIG = {
     MAX_DISTANCE: 8,
     MIN_POLAR_ANGLE: Math.PI / 6,
     MAX_POLAR_ANGLE: Math.PI / 2,
+    MIN_AZIMUTH_ANGLE: -Math.PI / 3,  // -60°
+    MAX_AZIMUTH_ANGLE: Math.PI / 3,   // +60°
+  },
+  // モバイル版の最適化設定
+  MOBILE: {
+    MAX_STARS: 200,
+    SETTLE_THRESHOLD: 0.01,
+    SETTLE_FRAMES: 30,
+    GRID_SIZE: 0.48,
+    PHYSICS_SUBSTEPS: 2,
+    LATHE_SEGMENTS: 32,
   },
 } as const;
 

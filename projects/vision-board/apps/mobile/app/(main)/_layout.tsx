@@ -85,6 +85,14 @@ function MainLayoutContent() {
             gestureDirection: 'vertical',
           }}
         />
+        <Stack.Screen
+          name="star-stack/[boardId]"
+          options={{
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
+            gestureEnabled: false,
+          }}
+        />
       </Stack>
 
       <Sidebar

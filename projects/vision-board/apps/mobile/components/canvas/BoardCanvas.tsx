@@ -34,6 +34,7 @@ import type { OverlayData } from './NodeOverlay';
 import { NodeToolbar } from './NodeToolbar';
 import { TextEditor } from './TextEditor';
 import type { Node } from '../../hooks/useNodes';
+import type { GestureResponderEvent } from 'react-native';
 import type { Routine } from '@vision-board/shared/lib';
 
 // --- Viewport persistence helpers ---
@@ -94,7 +95,8 @@ interface BoardCanvasProps {
   overlayNodeIds?: Set<string>;
   overlayDataMap?: Record<string, OverlayData>;
   onToggleNodeOverlay?: (nodeId: string) => void;
-  onOverlayToggleRoutine?: (nodeId: string, routine: Routine) => void;
+  onOverlayToggleRoutine?: (nodeId: string, routine: Routine, event: GestureResponderEvent) => void;
+  onOverlayToggleStack?: (nodeId: string, stackId: string, positions: Array<{ routineId: string; x: number; y: number; color: string }>) => void;
   onOverlayStartTimer?: (routine: Routine) => void;
   today?: string;
   showZoomIndicator?: boolean;
@@ -105,8 +107,9 @@ interface BoardCanvasProps {
   onTextEditorVisibleChange?: (visible: boolean) => void;
 }
 
-export const CANVAS_WIDTH = 4800;
-export const CANVAS_HEIGHT = 2700;
+// Re-export from shared constants to maintain backward compatibility
+export { CANVAS_WIDTH, CANVAS_HEIGHT } from './canvasConstants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './canvasConstants';
 const TAB_BAR_CONTENT_HEIGHT = 78;
 
 export interface BoardCanvasRef {
@@ -167,6 +170,7 @@ export const BoardCanvas = forwardRef<BoardCanvasRef, BoardCanvasProps>(
     overlayDataMap,
     onToggleNodeOverlay,
     onOverlayToggleRoutine,
+    onOverlayToggleStack,
     onOverlayStartTimer,
     today,
     showZoomIndicator,
@@ -596,6 +600,7 @@ export const BoardCanvas = forwardRef<BoardCanvasRef, BoardCanvasProps>(
                     overlayData={overlayDataMap?.[node.id]}
                     onToggleOverlay={onToggleNodeOverlay}
                     onOverlayToggleRoutine={onOverlayToggleRoutine}
+                    onOverlayToggleStack={onOverlayToggleStack}
                     onOverlayStartTimer={onOverlayStartTimer}
                     today={today}
                     onLongPress={onLongPressNode}

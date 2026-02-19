@@ -203,13 +203,21 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
 
   const {
     getRoutinesForNode,
+    getStacksForNode,
     toggleRoutineCheck,
     createRoutine,
     deleteRoutine,
     updateRoutineTitle,
     updateRoutineColor,
     updateRoutineActiveDays,
-    reorderRoutinesInNode,
+    createStack,
+    deleteStack,
+    updateStackTitle,
+    toggleStackCheck,
+    reorderRoutineInStack,
+    reorderTopLevel,
+    moveRoutineToStackAtPosition,
+    moveRoutineOutOfStack,
   } = useRoutines(selectedBoardId, user?.id ?? null);
 
   const [page, setPage] = useState<Page | null>(null);
@@ -224,6 +232,7 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
 
   const node = nodes.find(n => n.id === nodeId);
   const nodeRoutines = getRoutinesForNode(nodeId);
+  const nodeStacks = getStacksForNode(nodeId);
 
   // --- Scroll tracking for collapsing header ---
   const scrollY = useSharedValue(0);
@@ -259,10 +268,6 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
   const handleCreateRoutine = useCallback((title: string) => {
     createRoutine(title, nodeId);
   }, [nodeId, createRoutine]);
-
-  const handleReorderRoutines = useCallback((fromIndex: number, toIndex: number) => {
-    reorderRoutinesInNode(nodeId, fromIndex, toIndex);
-  }, [nodeId, reorderRoutinesInNode]);
 
   // Milestone handlers
   const handleToggleMilestone = useCallback((id: string) => {
@@ -609,6 +614,7 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
         <View style={{ paddingHorizontal: 20, paddingTop: 20, minHeight: 300 }}>
           {activeTab === 'routine' && (
             <RoutineWeeklyTable
+              nodeId={nodeId}
               routines={nodeRoutines}
               weekOffset={weekOffset}
               onWeekChange={setWeekOffset}
@@ -618,7 +624,15 @@ export function PageContent({ nodeId, onClose }: PageContentProps) {
               onUpdateTitle={updateRoutineTitle}
               onUpdateColor={updateRoutineColor}
               onUpdateActiveDays={updateRoutineActiveDays}
-              onReorder={handleReorderRoutines}
+              stacks={nodeStacks}
+              onCreateStack={(title) => createStack(nodeId, title)}
+              onDeleteStack={deleteStack}
+              onUpdateStackTitle={updateStackTitle}
+              onToggleStack={toggleStackCheck}
+              onReorderInStack={reorderRoutineInStack}
+              onReorderTopLevel={reorderTopLevel}
+              onMoveToStack={moveRoutineToStackAtPosition}
+              onMoveOutOfStack={moveRoutineOutOfStack}
             />
           )}
           {activeTab === 'milestone' && (

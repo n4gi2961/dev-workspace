@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
+import { FourPointStar } from '../ui/FourPointStar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffects } from '../../hooks/useFocusEffects';
 import { MeteorEffect } from '../focus/MeteorEffect';
@@ -96,11 +97,15 @@ export const TimerCompletionOverlay = React.memo(function TimerCompletionOverlay
           justifyContent: 'center',
         }}
       >
-        <CheckCircle2
-          size={80}
-          color={confirmed ? routineColor : colors.accent.primary}
-          fill={confirmed ? routineColor : 'transparent'}
-        />
+        {confirmed ? (
+          <FourPointStar size={80} color={routineColor} strokeWidth={2.5} />
+        ) : (
+          <CheckCircle2
+            size={80}
+            color={colors.accent.primary}
+            fill="transparent"
+          />
+        )}
       </TouchableOpacity>
 
       {/* Hint */}

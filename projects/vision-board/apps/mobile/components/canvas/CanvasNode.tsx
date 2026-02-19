@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, ActivityIndicator, Pressable, type GestureResponderEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -29,7 +29,8 @@ interface CanvasNodeProps {
   overlayActive?: boolean;
   overlayData?: OverlayData;
   onToggleOverlay?: (nodeId: string) => void;
-  onOverlayToggleRoutine?: (nodeId: string, routine: Routine) => void;
+  onOverlayToggleRoutine?: (nodeId: string, routine: Routine, event: GestureResponderEvent) => void;
+  onOverlayToggleStack?: (nodeId: string, stackId: string, positions: Array<{ routineId: string; x: number; y: number; color: string }>) => void;
   onOverlayStartTimer?: (routine: Routine) => void;
   today?: string;
   onLongPress?: (nodeId: string) => void;
@@ -258,6 +259,7 @@ export const CanvasNode = React.memo(function CanvasNode({
   overlayData,
   onToggleOverlay,
   onOverlayToggleRoutine,
+  onOverlayToggleStack,
   onOverlayStartTimer,
   today,
   onLongPress,
@@ -296,7 +298,8 @@ export const CanvasNode = React.memo(function CanvasNode({
             nodeHeight={node.height}
             cornerRadius={node.cornerRadius}
             today={today ?? ''}
-            onToggleRoutine={(routine) => onOverlayToggleRoutine?.(node.id, routine)}
+            onToggleRoutine={(routine, event) => onOverlayToggleRoutine?.(node.id, routine, event)}
+            onToggleStack={(stackId, positions) => onOverlayToggleStack?.(node.id, stackId, positions)}
             onStartTimer={onOverlayStartTimer}
           />
         )}

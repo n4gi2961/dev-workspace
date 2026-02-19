@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Alert, ActionSheetIOS, Platform, Pressable } from 'react-native';
+import { View, Alert, ActionSheetIOS, Platform, Pressable, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,6 +27,9 @@ import { BoardCanvas, type BoardCanvasRef } from '../../../components/canvas/Boa
 import { FABMenu } from '../../../components/canvas/FABMenu';
 import { FAB } from '../../../components/ui/FAB';
 import { UploadProgress } from '../../../components/ui/UploadProgress';
+import { RippleEffect } from '../../../components/focus/RippleEffect';
+import { MeteorEffect } from '../../../components/focus/MeteorEffect';
+import { useFocusEffects } from '../../../hooks/useFocusEffects';
 import type { CanvasMode } from '../../../components/canvas/CanvasNode';
 import type { OverlayData } from '../../../components/canvas/NodeOverlay';
 
@@ -74,7 +77,11 @@ export default function HomeScreen() {
   const [isTextEditorOpen, setIsTextEditorOpen] = useState(false);
   const tabBarHeight = TAB_BAR_CONTENT_HEIGHT + insets.bottom;
 
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const today = useMemo(() => getTodayString(), []);
+
+  // Ripple effect for routine check on board
+  const effects = useFocusEffects(screenWidth, screenHeight);
 
   // Reset to view mode when board changes
   useEffect(() => {
@@ -111,8 +118,11 @@ export default function HomeScreen() {
   const { pages, getPage } = usePages(user?.id ?? null);
   const {
     getRoutinesForNode,
+    getStacksForNode,
     toggleRoutineCheck,
+    toggleStackCheck,
     isRoutineActiveToday,
+    isMeteorWinner,
     reload: reloadRoutines,
   } = useRoutines(selectedBoardId, user?.id ?? null);
   const { recalculate, calculateAfterToggle } = useClearPercent();
@@ -186,10 +196,11 @@ export default function HomeScreen() {
         milestones: page?.milestones || [],
         clearPercent: cpOverrides[nodeId] ?? clearPercentMap[nodeId] ?? 100,
         hoverFontSize: node?.hoverFontSize,
+        stacks: getStacksForNode(nodeId),
       };
     }
     return map;
-  }, [overlayNodeIds, pages, getRoutinesForNode, isRoutineActiveToday, cpOverrides, clearPercentMap, nodes]);
+  }, [overlayNodeIds, pages, getRoutinesForNode, getStacksForNode, isRoutineActiveToday, cpOverrides, clearPercentMap, nodes]);
 
   // Refs for stable callback access (avoid re-render cascade)
   const cpOverridesRef = useRef(cpOverrides);
@@ -200,7 +211,7 @@ export default function HomeScreen() {
   overlayDataMapRef.current = overlayDataMap;
 
   const handleOverlayToggleRoutine = useCallback(
-    (nodeId: string, routine: Routine) => {
+    (nodeId: string, routine: Routine, event: GestureResponderEvent) => {
       const isChecking = !routine.history[today];
       if (isChecking) {
         const currentCp = cpOverridesRef.current[nodeId] ?? clearPercentMapRef.current[nodeId] ?? 100;
@@ -211,10 +222,51 @@ export default function HomeScreen() {
           );
           setCpOverrides((prev) => ({ ...prev, [nodeId]: newCp }));
         }
+
+        // Ripple effect from tap position
+        const { pageX, pageY } = event.nativeEvent;
+        const color = routine.color || '#8b5cf6';
+        effects.triggerRipple(pageX, pageY, color);
+
+        // 流星抽選当選時のエフェクト
+        if (isMeteorWinner(routine.id)) {
+          effects.triggerMeteor(color);
+        }
       }
       toggleRoutineCheck(routine.id, today);
     },
-    [today, calculateAfterToggle, toggleRoutineCheck],
+    [today, calculateAfterToggle, toggleRoutineCheck, effects, isMeteorWinner],
+  );
+
+  const handleOverlayToggleStack = useCallback(
+    (nodeId: string, stackId: string, positions: Array<{ routineId: string; x: number; y: number; color: string }>) => {
+      const data = overlayDataMapRef.current[nodeId];
+      if (!data) return;
+
+      const stackRoutines = data.routines
+        .filter((r) => r.stackId === stackId)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+      if (stackRoutines.length === 0) return;
+
+      const allChecked = stackRoutines.every((r) => !!r.history[today]);
+      const newChecked = !allChecked;
+      const routinesToFire = stackRoutines.filter((r) => !!r.history[today] !== newChecked);
+
+      // 500ms間隔で逐次リップル+流星（各ルーティンのアイコン位置から）
+      if (newChecked) {
+        routinesToFire.forEach((routine, i) => {
+          const pos = positions.find((p) => p.routineId === routine.id);
+          setTimeout(() => {
+            const color = pos?.color || routine.color || '#6366F1';
+            effects.triggerRipple(pos?.x ?? 0, pos?.y ?? 0, color);
+            if (isMeteorWinner(routine.id)) effects.triggerMeteor(color);
+          }, i * 500);
+        });
+      }
+
+      toggleStackCheck(stackId, today);
+    },
+    [today, effects, isMeteorWinner, toggleStackCheck],
   );
 
   // Refresh data when screen gains focus (tab switch, back navigation)
@@ -397,6 +449,11 @@ export default function HomeScreen() {
           rightIcon="sparkles"
           rightIconColor="#FFD700"
           showRight={!!selectedBoardId}
+          onRightPress={() => {
+            if (selectedBoardId) {
+              router.push(`/(main)/star-stack/${selectedBoardId}` as any);
+            }
+          }}
         />
       )}
 
@@ -421,6 +478,7 @@ export default function HomeScreen() {
           overlayDataMap={overlayDataMap}
           onToggleNodeOverlay={handleToggleNodeOverlay}
           onOverlayToggleRoutine={handleOverlayToggleRoutine}
+          onOverlayToggleStack={handleOverlayToggleStack}
           onOverlayStartTimer={handleOverlayStartTimer}
           today={today}
           showZoomIndicator={!isFullscreen}
@@ -431,6 +489,26 @@ export default function HomeScreen() {
           onTextEditorVisibleChange={setIsTextEditorOpen}
         />
       </ViewShot>
+
+      {/* Ripple Effect Layer */}
+      {effects.rippleState && (
+        <RippleEffect
+          rippleState={effects.rippleState}
+          rippleRadius={effects.rippleRadius}
+          screenWidth={screenWidth}
+          screenHeight={screenHeight}
+        />
+      )}
+
+      {/* Meteor Effect Layer */}
+      <MeteorEffect
+        meteorProgress={effects.meteorProgress}
+        meteorActive={effects.meteorActive}
+        meteorColor={effects.meteorColor}
+        meteorStartOffset={effects.meteorStartOffset}
+        screenWidth={screenWidth}
+        screenHeight={screenHeight}
+      />
 
       {/* Upload Progress */}
       <UploadProgress visible={isUploading} progress={progress} />

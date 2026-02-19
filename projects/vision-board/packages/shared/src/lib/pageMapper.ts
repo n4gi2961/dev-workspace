@@ -47,6 +47,20 @@ export interface Routine {
   history: Record<string, boolean>
   createdAt?: string  // ルーティン作成日（ISO 8601形式）
   activeDays?: number[]  // 実行する曜日 (0=日曜, 1=月曜, ..., 6=土曜)。undefinedは毎日実行
+  stackId?: string | null  // 所属するスタックID（nullは個別ルーティン）
+  stackOrder?: number  // スタック内の順序
+  displayOrder?: number  // トップレベルでの表示順（routine_nodes.sort_order から付与）
+}
+
+// ルーティンスタック（Habit Stacking用グループ）
+export interface RoutineStack {
+  id: string
+  boardId: string
+  nodeId: string
+  userId?: string
+  title: string
+  sortOrder: number
+  createdAt?: string
 }
 
 // ノードとルーティンの関連（中間テーブル）

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import PagerView from 'react-native-pager-view';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Plus, Check, Circle, CheckCircle2 } from 'lucide-react-native';
+import { Plus, Check, Circle, Layers } from 'lucide-react-native';
+import { FourPointStar } from '../../../components/ui/FourPointStar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTodayString } from '@vision-board/shared/lib';
 import { useClearPercent } from '@vision-board/shared';
-import type { Routine, Milestone } from '@vision-board/shared/lib';
+import type { Routine, RoutineStack, Milestone } from '@vision-board/shared/lib';
 import { useAuth } from '../../../hooks/useAuth';
 import { useNavigation } from '../../../contexts/navigation';
 import { useTimer } from '../../../contexts/timer';
@@ -63,6 +64,7 @@ interface OverlayData {
   title: string;
   routines: Routine[];
   milestones: Milestone[];
+  stacks?: RoutineStack[];
 }
 
 function FocusOverlay({
@@ -70,16 +72,39 @@ function FocusOverlay({
   today,
   onToggleRoutine,
   onStartTimer,
+  onToggleStack,
   screenHeight,
 }: {
   data: OverlayData;
   today: string;
   onToggleRoutine: (routine: Routine, event: GestureResponderEvent) => void;
   onStartTimer: (routine: Routine) => void;
+  onToggleStack?: (stackId: string, positions: Array<{ routineId: string; x: number; y: number; color: string }>) => void;
   screenHeight: number;
 }) {
   const insets = useSafeAreaInsets();
-  const activeRoutines = data.routines;
+
+  // スタック内ルーティンのチェックアイコンのView ref（位置計測用）
+  const iconRefsRef = useRef<Record<string, View | null>>({});
+
+  // スタックIDをキーにしたルーティンマップ
+  const stackRoutineMap = useMemo(() => {
+    const map: Record<string, Routine[]> = {};
+    if (!data.stacks) return map;
+    for (const stack of data.stacks) {
+      map[stack.id] = data.routines
+        .filter((r) => r.stackId === stack.id)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+    }
+    return map;
+  }, [data.routines, data.stacks]);
+
+  // スタック未所属ルーティン
+  const standaloneRoutines = useMemo(
+    () => data.routines.filter((r) => !r.stackId),
+    [data.routines],
+  );
+
   const completedMilestones = data.milestones.filter((m) => m.completed);
   const pendingMilestones = data.milestones.filter((m) => !m.completed);
 
@@ -143,7 +168,7 @@ function FocusOverlay({
         ) : null}
 
         {/* Routines section */}
-        {activeRoutines.length > 0 && (
+        {(standaloneRoutines.length > 0 || (data.stacks && data.stacks.length > 0)) && (
           <View style={{ marginBottom: 20 }}>
             <Text
               style={{
@@ -158,7 +183,9 @@ function FocusOverlay({
             >
               今日できること
             </Text>
-            {activeRoutines.map((routine) => {
+
+            {/* スタック未所属ルーティン */}
+            {standaloneRoutines.map((routine) => {
               const isChecked = !!routine.history[today];
               const timerParts = parseTimerParts(routine.title);
               return (
@@ -177,7 +204,7 @@ function FocusOverlay({
                   }}
                 >
                   {isChecked ? (
-                    <CheckCircle2 size={20} color={routine.color} fill={routine.color} />
+                    <FourPointStar size={20} color={routine.color} />
                   ) : (
                     <Circle size={20} color="rgba(255,255,255,0.5)" />
                   )}
@@ -197,10 +224,7 @@ function FocusOverlay({
                         {timerParts.before}
                         <Text
                           onPress={() => onStartTimer(routine)}
-                          style={{
-                            color: '#0095F6',
-                            fontWeight: '700',
-                          }}
+                          style={{ color: '#0095F6', fontWeight: '700' }}
                         >
                           {timerParts.number}
                         </Text>
@@ -211,6 +235,149 @@ function FocusOverlay({
                     )}
                   </Text>
                 </TouchableOpacity>
+              );
+            })}
+
+            {/* スタック表示 */}
+            {data.stacks?.map((stack) => {
+              const stackRoutines = stackRoutineMap[stack.id] ?? [];
+              const allChecked = stackRoutines.length > 0 && stackRoutines.every((r) => !!r.history[today]);
+              const someChecked = !allChecked && stackRoutines.some((r) => !!r.history[today]);
+
+              return (
+                <View key={stack.id} style={{ marginBottom: 8 }}>
+                  {/* スタックヘッダー */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    height: 36,
+                    marginBottom: 2,
+                  }}>
+                    <Layers size={13} color="#6366F1" style={{ marginRight: 6 }} />
+                    <Text
+                      style={{
+                        flex: 1,
+                        color: '#6366F1',
+                        fontSize: 13,
+                        fontWeight: '700',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {stack.title || '無題のスタック'}
+                    </Text>
+                    {/* 一括チェックボタン（3状態） */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        const total = stackRoutines.length;
+                        if (total === 0 || !onToggleStack) return;
+                        const positions: Array<{ routineId: string; x: number; y: number; color: string }> =
+                          new Array(total).fill(null);
+                        let done = 0;
+                        const onMeasured = () => {
+                          done++;
+                          if (done === total) onToggleStack(stack.id, positions);
+                        };
+                        stackRoutines.forEach((routine, i) => {
+                          const iconRef = iconRefsRef.current[routine.id];
+                          if (iconRef) {
+                            iconRef.measureInWindow((x, y, w, h) => {
+                              positions[i] = { routineId: routine.id, x: x + w / 2, y: y + h / 2, color: routine.color || '#6366F1' };
+                              onMeasured();
+                            });
+                          } else {
+                            positions[i] = { routineId: routine.id, x: 0, y: 0, color: routine.color || '#6366F1' };
+                            onMeasured();
+                          }
+                        });
+                      }}
+                      activeOpacity={0.7}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: allChecked
+                          ? '#6366F1'
+                          : someChecked
+                          ? '#6366F160'
+                          : 'rgba(255,255,255,0.12)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {(allChecked || someChecked) && (
+                        <Check size={14} color="#FFFFFF" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 縦線 + スタック内ルーティン */}
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={{
+                      width: 2,
+                      backgroundColor: '#6366F140',
+                      marginLeft: 17,
+                      marginRight: 10,
+                      borderRadius: 1,
+                    }} />
+                    <View style={{ flex: 1 }}>
+                      {stackRoutines.map((routine) => {
+                        const isChecked = !!routine.history[today];
+                        const timerParts = parseTimerParts(routine.title);
+                        return (
+                          <TouchableOpacity
+                            key={routine.id}
+                            onPress={(event) => onToggleRoutine(routine, event)}
+                            activeOpacity={0.7}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              paddingVertical: 10,
+                              paddingHorizontal: 12,
+                              marginBottom: 4,
+                              borderRadius: 10,
+                              backgroundColor: 'rgba(255,255,255,0.12)',
+                            }}
+                          >
+                            <View ref={(r) => { iconRefsRef.current[routine.id] = r; }}>
+                              {isChecked ? (
+                                <FourPointStar size={20} color={routine.color} />
+                              ) : (
+                                <Circle size={20} color="rgba(255,255,255,0.5)" />
+                              )}
+                            </View>
+                            <Text
+                              style={{
+                                fontSize: 15,
+                                fontWeight: '500',
+                                color: '#FFFFFF',
+                                marginLeft: 12,
+                                flex: 1,
+                                textDecorationLine: isChecked ? 'line-through' : 'none',
+                                opacity: isChecked ? 0.6 : 1,
+                              }}
+                            >
+                              {timerParts ? (
+                                <>
+                                  {timerParts.before}
+                                  <Text
+                                    onPress={() => onStartTimer(routine)}
+                                    style={{ color: '#0095F6', fontWeight: '700' }}
+                                  >
+                                    {timerParts.number}
+                                  </Text>
+                                  {timerParts.after}
+                                </>
+                              ) : (
+                                routine.title
+                              )}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </View>
               );
             })}
           </View>
@@ -398,7 +565,7 @@ function PageIndicator({ total, current }: { total: number; current: number }) {
 
 // --- Main Screen ---
 
-const METEOR_CHANCE = 0.05;
+// 流星は抽選システム (isMeteorWinner) で決定
 
 export default function FocusScreen() {
   const { user, session } = useAuth();
@@ -412,8 +579,11 @@ export default function FocusScreen() {
   const { pages, getPage } = usePages(user?.id ?? null);
   const {
     getRoutinesForNode,
+    getStacksForNode,
     toggleRoutineCheck,
+    toggleStackCheck,
     isRoutineActiveToday,
+    isMeteorWinner,
     reload: reloadRoutines,
   } = useRoutines(selectedBoardId, user?.id ?? null);
 
@@ -514,8 +684,9 @@ export default function FocusScreen() {
       title: page?.title || '',
       routines: nodeRoutines,
       milestones: page?.milestones || [],
+      stacks: getStacksForNode(currentNode.id),
     };
-  }, [currentNode, pages, getRoutinesForNode, isRoutineActiveToday]);
+  }, [currentNode, pages, getRoutinesForNode, getStacksForNode, isRoutineActiveToday]);
 
   const handleToggleRoutine = useCallback(
     (routine: Routine, event: GestureResponderEvent) => {
@@ -533,7 +704,7 @@ export default function FocusScreen() {
         // リップル + 流星エフェクト
         const color = routine.color || '#8b5cf6';
         effects.triggerRipple(pageX, pageY, color);
-        if (Math.random() < METEOR_CHANCE) {
+        if (isMeteorWinner(routine.id)) {
           effects.triggerMeteor(color);
         }
       }
@@ -541,7 +712,37 @@ export default function FocusScreen() {
       // データ更新
       toggleRoutineCheck(routine.id, today);
     },
-    [toggleRoutineCheck, today, currentNode, overlayData, getNodeClearPercent, calculateAfterToggle, effects], // eslint-disable-line react-hooks/exhaustive-deps
+    [toggleRoutineCheck, today, currentNode, overlayData, getNodeClearPercent, calculateAfterToggle, effects, isMeteorWinner], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const handleToggleStack = useCallback(
+    (stackId: string, positions: Array<{ routineId: string; x: number; y: number; color: string }>) => {
+      if (!overlayData) return;
+
+      const stackRoutines = overlayData.routines
+        .filter((r) => r.stackId === stackId)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+      if (stackRoutines.length === 0) return;
+
+      const allChecked = stackRoutines.every((r) => !!r.history[today]);
+      const newChecked = !allChecked;
+      const routinesToFire = stackRoutines.filter((r) => !!r.history[today] !== newChecked);
+
+      // 500ms間隔で逐次リップル+流星（各ルーティンのアイコン位置から）
+      if (newChecked) {
+        routinesToFire.forEach((routine, i) => {
+          const pos = positions.find((p) => p.routineId === routine.id);
+          setTimeout(() => {
+            const color = pos?.color || routine.color || '#6366F1';
+            effects.triggerRipple(pos?.x ?? 0, pos?.y ?? 0, color);
+            if (isMeteorWinner(routine.id)) effects.triggerMeteor(color);
+          }, i * 500);
+        });
+      }
+
+      toggleStackCheck(stackId, today);
+    },
+    [overlayData, today, effects, isMeteorWinner, toggleStackCheck],
   );
 
   const handleToggleOverlay = useCallback(() => {
@@ -662,6 +863,7 @@ export default function FocusScreen() {
           data={overlayData}
           today={today}
           onToggleRoutine={handleToggleRoutine}
+          onToggleStack={handleToggleStack}
           onStartTimer={handleStartTimer}
           screenHeight={screenHeight}
         />

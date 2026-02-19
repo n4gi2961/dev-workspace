@@ -2,20 +2,25 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { createClient } from '@vision-board/supabase';
-import type { Routine, RoutineNode } from '@vision-board/shared/lib';
+import type { Routine, RoutineNode, RoutineStack } from '@vision-board/shared/lib';
 import { generateId, getRandomColor } from '@vision-board/shared';
+import { getTodayString } from '@vision-board/shared/lib';
 import * as Haptics from 'expo-haptics';
 import { dataEvents } from '../lib/dataEvents';
+import { queueStarColor, dequeueStarColor } from './useStarStack';
+import { computeMeteorLottery } from '../lib/meteorLottery';
 
-export type { Routine, RoutineNode } from '@vision-board/shared/lib';
+export type { Routine, RoutineNode, RoutineStack } from '@vision-board/shared/lib';
 
 const CACHE_KEY_PREFIX = 'routines_cache_';
 const ROUTINE_NODES_CACHE_KEY_PREFIX = 'routine_nodes_cache_';
+const STACKS_CACHE_KEY_PREFIX = 'routine_stacks_cache_';
 const PENDING_QUEUE_KEY = 'routines_pending_queue';
 
 // --- Module-level memory cache for instant board switching ---
 const routinesMemoryCache = new Map<string, Record<string, Routine>>();
 const routineNodesMemoryCache = new Map<string, RoutineNode[]>();
+const stacksMemoryCache = new Map<string, Record<string, RoutineStack>>();
 
 export async function preloadBoardRoutines(boardIds: string[]): Promise<void> {
   await Promise.all(
@@ -32,14 +37,21 @@ export async function preloadBoardRoutines(boardIds: string[]): Promise<void> {
           if (c) routineNodesMemoryCache.set(id, JSON.parse(c));
         } catch {}
       }
+      if (!stacksMemoryCache.has(id)) {
+        try {
+          const c = await AsyncStorage.getItem(`${STACKS_CACHE_KEY_PREFIX}${id}`);
+          if (c) stacksMemoryCache.set(id, JSON.parse(c));
+        } catch {}
+      }
     }),
   );
 }
 
 interface PendingAction {
-  type: 'check' | 'create' | 'delete' | 'update' | 'reorder';
+  type: 'check' | 'create' | 'delete' | 'update' | 'reorder' | 'stack_create' | 'stack_delete' | 'stack_update' | 'stack_assign' | 'stack_remove' | 'reorder_toplevel' | 'move_to_stack' | 'move_out_of_stack';
   routineId?: string;
   nodeId?: string;
+  stackId?: string;
   date?: string;
   newChecked?: boolean;
   data?: Record<string, unknown>;
@@ -49,15 +61,19 @@ interface PendingAction {
 export function useRoutines(boardId: string | null, userId: string | null) {
   const [routines, setRoutines] = useState<Record<string, Routine>>({});
   const [routineNodes, setRoutineNodes] = useState<RoutineNode[]>([]);
+  const [routineStacks, setRoutineStacks] = useState<Record<string, RoutineStack>>({});
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const syncingRef = useRef(false);
   const instanceIdRef = useRef(`routines_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
   const stateVersionRef = useRef(0);
+  const routinesRef = useRef(routines);
+  routinesRef.current = routines; // always points to latest state (updated every render)
 
   const cacheKey = boardId ? `${CACHE_KEY_PREFIX}${boardId}` : null;
   const routineNodesCacheKey = boardId ? `${ROUTINE_NODES_CACHE_KEY_PREFIX}${boardId}` : null;
+  const stacksCacheKey = boardId ? `${STACKS_CACHE_KEY_PREFIX}${boardId}` : null;
 
   // Monitor network status
   useEffect(() => {
@@ -114,6 +130,27 @@ export function useRoutines(boardId: string | null, userId: string | null) {
       console.error('Failed to cache routine_nodes:', err);
     }
   }, [routineNodesCacheKey, boardId]);
+
+  const loadCachedStacks = useCallback(async () => {
+    if (!stacksCacheKey) return null;
+    try {
+      const cached = await AsyncStorage.getItem(stacksCacheKey);
+      if (cached) return JSON.parse(cached) as Record<string, RoutineStack>;
+    } catch (err) {
+      console.error('Failed to load cached stacks:', err);
+    }
+    return null;
+  }, [stacksCacheKey]);
+
+  const saveStacksToCache = useCallback(async (data: Record<string, RoutineStack>) => {
+    if (!stacksCacheKey) return;
+    if (boardId) stacksMemoryCache.set(boardId, data);
+    try {
+      await AsyncStorage.setItem(stacksCacheKey, JSON.stringify(data));
+    } catch (err) {
+      console.error('Failed to cache stacks:', err);
+    }
+  }, [stacksCacheKey, boardId]);
 
   // --- Pending queue ---
 
@@ -203,6 +240,53 @@ export function useRoutines(boardId: string | null, userId: string | null) {
               if (error) { ok = false; break; }
             }
             if (ok) processed.push(i);
+          } else if (action.type === 'stack_create' && action.data) {
+            const { error } = await supabase.from('routine_stacks').insert(action.data.insertData as Record<string, unknown>);
+            if (!error) processed.push(i);
+          } else if (action.type === 'stack_delete' && action.stackId) {
+            const { error } = await supabase.from('routine_stacks').delete().eq('id', action.stackId);
+            if (!error) processed.push(i);
+          } else if (action.type === 'stack_update' && action.stackId && action.data) {
+            if (action.data.reorderUpdates) {
+              const updates = action.data.reorderUpdates as Array<{ id: string; stack_order: number }>;
+              let ok = true;
+              for (const u of updates) {
+                const { error } = await supabase.from('routines').update({ stack_order: u.stack_order }).eq('id', u.id);
+                if (error) { ok = false; break; }
+              }
+              if (ok) processed.push(i);
+            } else {
+              const { error } = await supabase.from('routine_stacks').update(action.data as Record<string, unknown>).eq('id', action.stackId);
+              if (!error) processed.push(i);
+            }
+          } else if ((action.type === 'stack_assign' || action.type === 'stack_remove') && action.routineId && action.data) {
+            const { error } = await supabase.from('routines').update(action.data as Record<string, unknown>).eq('id', action.routineId);
+            if (!error) processed.push(i);
+          } else if (action.type === 'reorder_toplevel' && action.data) {
+            const d = action.data as { routineUpdates: Array<{ linkId: string; sortOrder: number }>; stackUpdates: Array<{ stackId: string; sortOrder: number }> };
+            let ok = true;
+            for (const u of d.routineUpdates) {
+              const { error } = await supabase.from('routine_nodes').update({ sort_order: u.sortOrder }).eq('id', u.linkId);
+              if (error) { ok = false; break; }
+            }
+            if (ok) {
+              for (const u of d.stackUpdates) {
+                const { error } = await supabase.from('routine_stacks').update({ sort_order: u.sortOrder }).eq('id', u.stackId);
+                if (error) { ok = false; break; }
+              }
+            }
+            if (ok) processed.push(i);
+          } else if (action.type === 'move_to_stack' && action.routineId && action.data) {
+            const d = action.data as { stackOrderUpdates: Array<{ id: string; stack_id: string; stack_order: number }> };
+            let ok = true;
+            for (const u of d.stackOrderUpdates) {
+              const { error } = await supabase.from('routines').update({ stack_id: u.stack_id, stack_order: u.stack_order }).eq('id', u.id);
+              if (error) { ok = false; break; }
+            }
+            if (ok) processed.push(i);
+          } else if (action.type === 'move_out_of_stack' && action.routineId && action.data) {
+            const { error } = await supabase.from('routines').update(action.data as Record<string, unknown>).eq('id', action.routineId);
+            if (!error) processed.push(i);
           }
         } catch {
           // Continue with next
@@ -231,6 +315,7 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     // Memory cache first (synchronous — instant board switch)
     const memRoutines = boardId ? routinesMemoryCache.get(boardId) : null;
     const memNodes = boardId ? routineNodesMemoryCache.get(boardId) : null;
+    const memStacks = boardId ? stacksMemoryCache.get(boardId) : null;
     if (memRoutines && stateVersionRef.current === versionAtStart) {
       setRoutines(memRoutines);
       setLoading(false);
@@ -238,12 +323,16 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     if (memNodes && stateVersionRef.current === versionAtStart) {
       setRoutineNodes(memNodes);
     }
+    if (memStacks && stateVersionRef.current === versionAtStart) {
+      setRoutineStacks(memStacks);
+    }
 
     // AsyncStorage cache fallback (only if memory cache missed)
-    if (!memRoutines || !memNodes) {
-      const [cachedRoutines, cachedNodes] = await Promise.all([
+    if (!memRoutines || !memNodes || !memStacks) {
+      const [cachedRoutines, cachedNodes, cachedStacks] = await Promise.all([
         !memRoutines ? loadCachedRoutines() : null,
         !memNodes ? loadCachedRoutineNodes() : null,
+        !memStacks ? loadCachedStacks() : null,
       ]);
       if (cachedRoutines && stateVersionRef.current === versionAtStart) {
         setRoutines(cachedRoutines);
@@ -253,6 +342,10 @@ export function useRoutines(boardId: string | null, userId: string | null) {
       if (cachedNodes && stateVersionRef.current === versionAtStart) {
         setRoutineNodes(cachedNodes);
         if (boardId) routineNodesMemoryCache.set(boardId, cachedNodes);
+      }
+      if (cachedStacks && stateVersionRef.current === versionAtStart) {
+        setRoutineStacks(cachedStacks);
+        if (boardId) stacksMemoryCache.set(boardId, cachedStacks);
       }
     }
 
@@ -266,9 +359,10 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     try {
       const supabase = createClient();
 
-      const [routinesRes, routineNodesRes] = await Promise.all([
+      const [routinesRes, routineNodesRes, stacksRes] = await Promise.all([
         supabase.from('routines').select('*').eq('board_id', boardId),
         supabase.from('routine_nodes').select('*').eq('user_id', userId),
+        supabase.from('routine_stacks').select('*').eq('board_id', boardId),
       ]);
 
       if (routinesRes.error) {
@@ -285,11 +379,14 @@ export function useRoutines(boardId: string | null, userId: string | null) {
         (r: {
           id: string; board_id: string; title: string; color: string;
           history?: Record<string, boolean>; created_at?: string; active_days?: number[];
+          stack_id?: string | null; stack_order?: number;
         }) => {
           routinesMap[r.id] = {
             id: r.id, boardId: r.board_id, title: r.title, color: r.color,
             history: r.history || {}, createdAt: r.created_at,
             activeDays: r.active_days || undefined,
+            stackId: r.stack_id || null,
+            stackOrder: r.stack_order || 0,
           };
         }
       );
@@ -300,13 +397,31 @@ export function useRoutines(boardId: string | null, userId: string | null) {
         })
       );
 
+      const stacksMap: Record<string, RoutineStack> = {};
+      if (!stacksRes.error) {
+        (stacksRes.data || []).forEach(
+          (s: {
+            id: string; board_id: string; node_id: string; user_id: string;
+            title: string; sort_order: number; created_at?: string;
+          }) => {
+            stacksMap[s.id] = {
+              id: s.id, boardId: s.board_id, nodeId: s.node_id,
+              userId: s.user_id, title: s.title, sortOrder: s.sort_order,
+              createdAt: s.created_at,
+            };
+          }
+        );
+      }
+
       // Only update state if no newer optimistic updates occurred
       if (stateVersionRef.current === versionAtStart) {
         setRoutines(routinesMap);
         setRoutineNodes(routineNodesList);
+        setRoutineStacks(stacksMap);
         await Promise.all([
           saveRoutinesToCache(routinesMap),
           saveRoutineNodesToCache(routineNodesList),
+          saveStacksToCache(stacksMap),
         ]);
       }
     } catch (err) {
@@ -314,7 +429,7 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [boardId, userId, loadCachedRoutines, loadCachedRoutineNodes, saveRoutinesToCache, saveRoutineNodesToCache]);
+  }, [boardId, userId, loadCachedRoutines, loadCachedRoutineNodes, loadCachedStacks, saveRoutinesToCache, saveRoutineNodesToCache, saveStacksToCache]);
 
   // Subscribe to cross-screen routine changes (skip self-emitted events)
   useEffect(() => {
@@ -329,6 +444,7 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     if (boardId && userId) {
       const cachedR = routinesMemoryCache.get(boardId);
       const cachedRN = routineNodesMemoryCache.get(boardId);
+      const cachedS = stacksMemoryCache.get(boardId);
       if (cachedR) {
         setRoutines(cachedR);
         setLoading(false);
@@ -336,6 +452,7 @@ export function useRoutines(boardId: string | null, userId: string | null) {
         setRoutines({});
       }
       setRoutineNodes(cachedRN || []);
+      setRoutineStacks(cachedS || {});
       loadRoutines();
       loadPendingCount();
     }
@@ -345,13 +462,31 @@ export function useRoutines(boardId: string | null, userId: string | null) {
 
   const routinesList = useMemo(() => Object.values(routines), [routines]);
 
-  const getRoutinesForNode = useCallback((nodeId: string): Routine[] => {
-    const nodeRoutineIds = routineNodes
-      .filter(rn => rn.nodeId === nodeId)
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map(rn => rn.routineId);
+  // --- 流星抽選 ---
+  const meteorWinnerIds = useMemo(() => {
+    if (!boardId) return new Set<string>();
+    const today = getTodayString();
+    const sortedIds = Object.keys(routines).sort();
+    return computeMeteorLottery(today, boardId, sortedIds);
+  }, [boardId, routines]);
 
-    return nodeRoutineIds.map(id => routines[id]).filter(Boolean);
+  const isMeteorWinner = useCallback(
+    (routineId: string): boolean => meteorWinnerIds.has(routineId),
+    [meteorWinnerIds],
+  );
+
+  const getRoutinesForNode = useCallback((nodeId: string): Routine[] => {
+    const nodeLinks = routineNodes
+      .filter(rn => rn.nodeId === nodeId)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+
+    return nodeLinks
+      .map(link => {
+        const r = routines[link.routineId];
+        if (!r) return null;
+        return { ...r, displayOrder: link.sortOrder };
+      })
+      .filter(Boolean) as Routine[];
   }, [routines, routineNodes]);
 
   // --- Toggle check ---
@@ -372,8 +507,16 @@ export function useRoutines(boardId: string | null, userId: string | null) {
 
       if (newChecked) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // StarStack: ルーティンの色をpendingキューに追加（流星当選フラグ付き）
+        if (boardId) {
+          queueStarColor(boardId, routine.color || '#3b82f6', isMeteorWinner(routineId));
+        }
       } else {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        // StarStack: チェック解除時にキューから対応する星を取り除く
+        if (boardId) {
+          dequeueStarColor(boardId, routine.color || '#3b82f6');
+        }
       }
 
       const netState = await NetInfo.fetch();
@@ -396,7 +539,7 @@ export function useRoutines(boardId: string | null, userId: string | null) {
         return true;
       }
     },
-    [routines, userId, saveRoutinesToCache, addToPendingQueue]
+    [routines, userId, saveRoutinesToCache, addToPendingQueue, isMeteorWinner]
   );
 
   // --- Create routine ---
@@ -702,6 +845,536 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     [userId, routineNodes, addToPendingQueue]
   );
 
+  // --- Stack operations ---
+
+  const stacksList = useMemo(() => Object.values(routineStacks), [routineStacks]);
+
+  const getStacksForNode = useCallback((nodeId: string): RoutineStack[] => {
+    return stacksList
+      .filter(s => s.nodeId === nodeId)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [stacksList]);
+
+  const getRoutinesInStack = useCallback((stackId: string): Routine[] => {
+    return routinesList
+      .filter(r => r.stackId === stackId)
+      .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+  }, [routinesList]);
+
+  const createStack = useCallback(
+    async (nodeId: string, title: string): Promise<RoutineStack | null> => {
+      if (!boardId || !userId) return null;
+
+      const newStackId = generateId();
+      const maxSortOrder = stacksList
+        .filter(s => s.nodeId === nodeId)
+        .reduce((max, s) => Math.max(max, s.sortOrder), -1);
+
+      const newStack: RoutineStack = {
+        id: newStackId, boardId, nodeId, userId, title,
+        sortOrder: maxSortOrder + 1, createdAt: new Date().toISOString(),
+      };
+
+      stateVersionRef.current += 1;
+      const updatedStacks = { ...routineStacks, [newStackId]: newStack };
+      setRoutineStacks(updatedStacks);
+      await saveStacksToCache(updatedStacks);
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      const insertData = {
+        id: newStackId, board_id: boardId, node_id: nodeId, user_id: userId,
+        title, sort_order: newStack.sortOrder, created_at: newStack.createdAt,
+      };
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({ type: 'stack_create', stackId: newStackId, data: { insertData }, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return newStack;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('routine_stacks').insert(insertData);
+        if (error) throw error;
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return newStack;
+      } catch (err) {
+        await addToPendingQueue({ type: 'stack_create', stackId: newStackId, data: { insertData }, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to create stack, queued:', err);
+        return newStack;
+      }
+    },
+    [boardId, userId, routineStacks, stacksList, saveStacksToCache, addToPendingQueue]
+  );
+
+  const deleteStack = useCallback(
+    async (stackId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const stack = routineStacks[stackId];
+      if (!stack) return true;
+
+      // Unassign all routines in this stack
+      stateVersionRef.current += 1;
+      const updatedRoutines = { ...routines };
+      for (const r of Object.values(updatedRoutines)) {
+        if (r.stackId === stackId) {
+          updatedRoutines[r.id] = { ...r, stackId: null, stackOrder: 0 };
+        }
+      }
+      setRoutines(updatedRoutines);
+
+      const updatedStacks = { ...routineStacks };
+      delete updatedStacks[stackId];
+      setRoutineStacks(updatedStacks);
+
+      await Promise.all([
+        saveRoutinesToCache(updatedRoutines),
+        saveStacksToCache(updatedStacks),
+      ]);
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({ type: 'stack_delete', stackId, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('routine_stacks').delete().eq('id', stackId);
+        if (error) throw error;
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({ type: 'stack_delete', stackId, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to delete stack, queued:', err);
+        return true;
+      }
+    },
+    [userId, routines, routineStacks, saveRoutinesToCache, saveStacksToCache, addToPendingQueue]
+  );
+
+  const updateStackTitle = useCallback(
+    async (stackId: string, title: string): Promise<boolean> => {
+      if (!userId) return false;
+      const stack = routineStacks[stackId];
+      if (!stack) return false;
+
+      stateVersionRef.current += 1;
+      const updatedStacks = { ...routineStacks, [stackId]: { ...stack, title } };
+      setRoutineStacks(updatedStacks);
+      await saveStacksToCache(updatedStacks);
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({ type: 'stack_update', stackId, data: { title }, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('routine_stacks').update({ title }).eq('id', stackId);
+        if (error) throw error;
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({ type: 'stack_update', stackId, data: { title }, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to update stack title, queued:', err);
+        return true;
+      }
+    },
+    [userId, routineStacks, saveStacksToCache, addToPendingQueue]
+  );
+
+  const addRoutineToStack = useCallback(
+    async (routineId: string, stackId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const routine = routines[routineId];
+      if (!routine) return false;
+
+      const stackRoutines = routinesList.filter(r => r.stackId === stackId);
+      const maxOrder = stackRoutines.reduce((max, r) => Math.max(max, r.stackOrder || 0), -1);
+
+      stateVersionRef.current += 1;
+      const updatedRoutines = {
+        ...routines,
+        [routineId]: { ...routine, stackId, stackOrder: maxOrder + 1 },
+      };
+      setRoutines(updatedRoutines);
+      await saveRoutinesToCache(updatedRoutines);
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({
+          type: 'stack_assign', routineId, stackId,
+          data: { stack_id: stackId, stack_order: maxOrder + 1 }, timestamp: Date.now(),
+        });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('routines')
+          .update({ stack_id: stackId, stack_order: maxOrder + 1 }).eq('id', routineId);
+        if (error) throw error;
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({
+          type: 'stack_assign', routineId, stackId,
+          data: { stack_id: stackId, stack_order: maxOrder + 1 }, timestamp: Date.now(),
+        });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to assign routine to stack, queued:', err);
+        return true;
+      }
+    },
+    [userId, routines, routinesList, saveRoutinesToCache, addToPendingQueue]
+  );
+
+  const removeRoutineFromStack = useCallback(
+    async (routineId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const routine = routines[routineId];
+      if (!routine) return false;
+
+      stateVersionRef.current += 1;
+      const updatedRoutines = {
+        ...routines,
+        [routineId]: { ...routine, stackId: null, stackOrder: 0 },
+      };
+      setRoutines(updatedRoutines);
+      await saveRoutinesToCache(updatedRoutines);
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({
+          type: 'stack_remove', routineId,
+          data: { stack_id: null, stack_order: 0 }, timestamp: Date.now(),
+        });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('routines')
+          .update({ stack_id: null, stack_order: 0 }).eq('id', routineId);
+        if (error) throw error;
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({
+          type: 'stack_remove', routineId,
+          data: { stack_id: null, stack_order: 0 }, timestamp: Date.now(),
+        });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to remove routine from stack, queued:', err);
+        return true;
+      }
+    },
+    [userId, routines, saveRoutinesToCache, addToPendingQueue]
+  );
+
+  const toggleStackCheck = useCallback(
+    (stackId: string, date: string): boolean => {
+      if (!userId) return false;
+
+      const stackRoutines = routinesList
+        .filter(r => r.stackId === stackId)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0))
+        .filter(r => {
+          if (!r.activeDays) return true;
+          const dayOfWeek = new Date(date).getDay();
+          return r.activeDays.includes(dayOfWeek);
+        });
+
+      if (stackRoutines.length === 0) return false;
+
+      const allChecked = stackRoutines.every(r => r.history[date]);
+      const newChecked = !allChecked;
+
+      // routinesToToggle: 方向が合っていないものだけ（全チェック済みなら解除、それ以外はチェック）
+      const routinesToToggle = stackRoutines.filter(r => !!r.history[date] !== newChecked);
+      if (routinesToToggle.length === 0) return true;
+
+      // 各ルーティンのnewHistoryを呼び出し時点で確定させておく
+      const updates = routinesToToggle.map(r => ({
+        id: r.id,
+        color: r.color || '#3b82f6',
+        newHistory: { ...r.history, [date]: newChecked },
+      }));
+
+      updates.forEach(({ id, color, newHistory }, i) => {
+        setTimeout(() => {
+          // routinesRef.current = 直前のsetRoutinesが反映された最新state
+          // これにより呼び出し2が呼び出し1の更新を上書きしない
+          stateVersionRef.current += 1;
+          const latest = routinesRef.current;
+          const routine = latest[id];
+          if (!routine) return;
+
+          const updatedRoutines = { ...latest, [id]: { ...routine, history: newHistory } };
+          setRoutines(updatedRoutines);
+          saveRoutinesToCache(updatedRoutines);
+
+          if (newChecked) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (boardId) queueStarColor(boardId, color, isMeteorWinner(id));
+          } else {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (boardId) dequeueStarColor(boardId, color);
+          }
+
+          const syncDB = async () => {
+            const netState = await NetInfo.fetch();
+            if (!netState.isConnected) {
+              await addToPendingQueue({ type: 'check', routineId: id, date, newChecked, timestamp: Date.now() });
+              return;
+            }
+            try {
+              const supabase = createClient();
+              const { error } = await supabase.from('routines').update({ history: newHistory }).eq('id', id);
+              if (error) throw error;
+            } catch {
+              await addToPendingQueue({ type: 'check', routineId: id, date, newChecked, timestamp: Date.now() });
+            }
+            dataEvents.emit('routines:changed', instanceIdRef.current);
+          };
+          syncDB();
+        }, i * 500);
+      });
+
+      return true;
+    },
+    [userId, routinesList, routinesRef, setRoutines, saveRoutinesToCache, boardId, queueStarColor, dequeueStarColor, isMeteorWinner, addToPendingQueue, stateVersionRef, instanceIdRef]
+  );
+
+  const reorderRoutineInStack = useCallback(
+    async (stackId: string, fromIndex: number, toIndex: number): Promise<boolean> => {
+      if (!userId) return false;
+
+      const stackRoutines = routinesList
+        .filter(r => r.stackId === stackId)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+
+      if (fromIndex < 0 || toIndex < 0 || fromIndex >= stackRoutines.length || toIndex >= stackRoutines.length) {
+        return false;
+      }
+
+      const reordered = [...stackRoutines];
+      const [moved] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, moved);
+
+      stateVersionRef.current += 1;
+      const updatedRoutines = { ...routines };
+      reordered.forEach((r, i) => {
+        updatedRoutines[r.id] = { ...updatedRoutines[r.id], stackOrder: i };
+      });
+      setRoutines(updatedRoutines);
+      await saveRoutinesToCache(updatedRoutines);
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const updates = reordered.map((r, i) => ({ id: r.id, stack_order: i }));
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({
+          type: 'stack_update', stackId,
+          data: { reorderUpdates: updates }, timestamp: Date.now(),
+        });
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        for (const u of updates) {
+          const { error } = await supabase.from('routines').update({ stack_order: u.stack_order }).eq('id', u.id);
+          if (error) throw error;
+        }
+        return true;
+      } catch (err) {
+        console.error('Failed to reorder routines in stack:', err);
+        return false;
+      }
+    },
+    [userId, routines, routinesList, saveRoutinesToCache, addToPendingQueue]
+  );
+
+  // --- Unified top-level reorder ---
+
+  const reorderTopLevel = useCallback(
+    async (nodeId: string, orderedItems: Array<{ type: 'routine' | 'stack'; id: string }>): Promise<boolean> => {
+      if (!userId) return false;
+
+      const routineUpdates: Array<{ linkId: string; sortOrder: number }> = [];
+      const stackUpdates: Array<{ stackId: string; sortOrder: number }> = [];
+
+      orderedItems.forEach((item, i) => {
+        const order = i * 10;
+        if (item.type === 'routine') {
+          const link = routineNodes.find(rn => rn.nodeId === nodeId && rn.routineId === item.id);
+          if (link) routineUpdates.push({ linkId: link.id, sortOrder: order });
+        } else {
+          stackUpdates.push({ stackId: item.id, sortOrder: order });
+        }
+      });
+
+      stateVersionRef.current += 1;
+      const newRoutineNodes = routineNodes.map(rn => {
+        const update = routineUpdates.find(u => u.linkId === rn.id);
+        return update ? { ...rn, sortOrder: update.sortOrder } : rn;
+      });
+      setRoutineNodes(newRoutineNodes);
+      await saveRoutineNodesToCache(newRoutineNodes);
+
+      const newRoutineStacks = { ...routineStacks };
+      for (const u of stackUpdates) {
+        if (newRoutineStacks[u.stackId]) {
+          newRoutineStacks[u.stackId] = { ...newRoutineStacks[u.stackId], sortOrder: u.sortOrder };
+        }
+      }
+      setRoutineStacks(newRoutineStacks);
+      await saveStacksToCache(newRoutineStacks);
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const pendingData = { nodeId, routineUpdates, stackUpdates };
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({ type: 'reorder_toplevel', nodeId, data: pendingData, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        for (const u of routineUpdates) {
+          const { error } = await supabase.from('routine_nodes').update({ sort_order: u.sortOrder }).eq('id', u.linkId);
+          if (error) throw error;
+        }
+        for (const u of stackUpdates) {
+          const { error } = await supabase.from('routine_stacks').update({ sort_order: u.sortOrder }).eq('id', u.stackId);
+          if (error) throw error;
+        }
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({ type: 'reorder_toplevel', nodeId, data: pendingData, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to reorder top level, queued:', err);
+        return true;
+      }
+    },
+    [userId, routineNodes, routineStacks, saveRoutineNodesToCache, saveStacksToCache, addToPendingQueue],
+  );
+
+  const moveRoutineToStackAtPosition = useCallback(
+    async (routineId: string, stackId: string, position: number): Promise<boolean> => {
+      if (!userId) return false;
+      const routine = routines[routineId];
+      if (!routine) return false;
+
+      const currentStackRoutines = routinesList
+        .filter(r => r.stackId === stackId && r.id !== routineId)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+
+      const clampedPos = Math.max(0, Math.min(position, currentStackRoutines.length));
+      const newStackRoutines = [...currentStackRoutines];
+      newStackRoutines.splice(clampedPos, 0, routine);
+
+      stateVersionRef.current += 1;
+      const updatedRoutines = { ...routines };
+      newStackRoutines.forEach((r, i) => {
+        updatedRoutines[r.id] = { ...updatedRoutines[r.id], stackId, stackOrder: i };
+      });
+      setRoutines(updatedRoutines);
+      await saveRoutinesToCache(updatedRoutines);
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      const stackOrderUpdates = newStackRoutines.map((r, i) => ({ id: r.id, stack_id: stackId, stack_order: i }));
+      const pendingData = { routineId, stackId, stackOrderUpdates };
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({ type: 'move_to_stack', routineId, stackId, data: pendingData, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        for (const u of stackOrderUpdates) {
+          const { error } = await supabase
+            .from('routines').update({ stack_id: u.stack_id, stack_order: u.stack_order }).eq('id', u.id);
+          if (error) throw error;
+        }
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({ type: 'move_to_stack', routineId, stackId, data: pendingData, timestamp: Date.now() });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        console.error('Failed to move routine to stack, queued:', err);
+        return true;
+      }
+    },
+    [userId, routines, routinesList, saveRoutinesToCache, addToPendingQueue],
+  );
+
+  const moveRoutineOutOfStack = useCallback(
+    async (routineId: string): Promise<boolean> => {
+      if (!userId) return false;
+      const routine = routines[routineId];
+      if (!routine || !routine.stackId) return false;
+
+      stateVersionRef.current += 1;
+      const updatedRoutines = {
+        ...routines,
+        [routineId]: { ...routine, stackId: null as null, stackOrder: 0 },
+      };
+      setRoutines(updatedRoutines);
+      await saveRoutinesToCache(updatedRoutines);
+
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        await addToPendingQueue({
+          type: 'move_out_of_stack', routineId,
+          data: { stack_id: null, stack_order: 0 }, timestamp: Date.now(),
+        });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('routines')
+          .update({ stack_id: null, stack_order: 0 }).eq('id', routineId);
+        if (error) throw error;
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      } catch (err) {
+        await addToPendingQueue({
+          type: 'move_out_of_stack', routineId,
+          data: { stack_id: null, stack_order: 0 }, timestamp: Date.now(),
+        });
+        dataEvents.emit('routines:changed', instanceIdRef.current);
+        return true;
+      }
+    },
+    [userId, routines, saveRoutinesToCache, addToPendingQueue],
+  );
+
   // --- Helpers ---
 
   const getTodayDateString = useCallback(() => {
@@ -739,11 +1412,15 @@ export function useRoutines(boardId: string | null, userId: string | null) {
   return {
     routines,
     routineNodes,
+    routineStacks,
     routinesList,
+    stacksList,
     loading,
     isOffline,
     pendingCount,
     getRoutinesForNode,
+    getStacksForNode,
+    getRoutinesInStack,
     toggleRoutineCheck,
     createRoutine,
     deleteRoutine,
@@ -751,10 +1428,21 @@ export function useRoutines(boardId: string | null, userId: string | null) {
     updateRoutineColor,
     updateRoutineActiveDays,
     reorderRoutinesInNode,
+    createStack,
+    deleteStack,
+    updateStackTitle,
+    addRoutineToStack,
+    removeRoutineFromStack,
+    toggleStackCheck,
+    reorderRoutineInStack,
+    reorderTopLevel,
+    moveRoutineToStackAtPosition,
+    moveRoutineOutOfStack,
     getTodayDateString,
     isRoutineActiveToday,
     getCompletedCountForDate,
     getActiveRoutinesForDate,
+    isMeteorWinner,
     reload: loadRoutines,
     syncPending: syncPendingActions,
   };

@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { Check, Circle, CheckCircle2 } from 'lucide-react-native';
-import type { Routine, Milestone } from '@vision-board/shared/lib';
+import React, { useMemo, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, type GestureResponderEvent } from 'react-native';
+import { Check, Circle, Layers } from 'lucide-react-native';
+import { FourPointStar } from '../ui/FourPointStar';
+import type { Routine, RoutineStack, Milestone } from '@vision-board/shared/lib';
 import { parseTimerParts } from '../../lib/parseTimerMinutes';
 
 export interface OverlayData {
@@ -10,6 +11,7 @@ export interface OverlayData {
   milestones: Milestone[];
   clearPercent: number;
   hoverFontSize?: string;
+  stacks?: RoutineStack[];
 }
 
 interface NodeOverlayProps {
@@ -18,8 +20,9 @@ interface NodeOverlayProps {
   nodeHeight: number;
   cornerRadius?: number;
   today: string;
-  onToggleRoutine: (routine: Routine) => void;
+  onToggleRoutine: (routine: Routine, event: GestureResponderEvent) => void;
   onStartTimer?: (routine: Routine) => void;
+  onToggleStack?: (stackId: string, positions: Array<{ routineId: string; x: number; y: number; color: string }>) => void;
 }
 
 export function NodeOverlay({
@@ -30,7 +33,11 @@ export function NodeOverlay({
   today,
   onToggleRoutine,
   onStartTimer,
+  onToggleStack,
 }: NodeOverlayProps) {
+  // スタック内ルーティンのチェックアイコンのView ref（位置計測用）
+  const iconRefsRef = useRef<Record<string, View | null>>({});
+
   const completedMilestones = data.milestones.filter((m) => m.completed);
   const pendingMilestones = data.milestones.filter((m) => !m.completed);
 
@@ -43,6 +50,24 @@ export function NodeOverlay({
   const milestoneSize = Math.round(12 * scaleFactor);
   const iconSize = Math.round(16 * scaleFactor);
   const padding = Math.round(10 * scaleFactor);
+
+  // スタックIDをキーにしたルーティンマップ
+  const stackRoutineMap = useMemo(() => {
+    const map: Record<string, Routine[]> = {};
+    if (!data.stacks) return map;
+    for (const stack of data.stacks) {
+      map[stack.id] = data.routines
+        .filter((r) => r.stackId === stack.id)
+        .sort((a, b) => (a.stackOrder || 0) - (b.stackOrder || 0));
+    }
+    return map;
+  }, [data.routines, data.stacks]);
+
+  // スタック未所属ルーティン
+  const standaloneRoutines = useMemo(
+    () => data.routines.filter((r) => !r.stackId),
+    [data.routines],
+  );
 
   return (
     <View
@@ -75,23 +100,25 @@ export function NodeOverlay({
         ) : null}
 
         {/* Routines section */}
-        {data.routines.length > 0 && (
+        {(standaloneRoutines.length > 0 || (data.stacks && data.stacks.length > 0)) && (
           <View style={{ marginBottom: padding }}>
             <Text style={[styles.sectionLabel, { fontSize: labelSize, marginBottom: padding * 0.6 }]}>
               今日できること
             </Text>
-            {data.routines.map((routine) => {
+
+            {/* スタック未所属ルーティン */}
+            {standaloneRoutines.map((routine) => {
               const isChecked = !!routine.history[today];
               const timerParts = onStartTimer ? parseTimerParts(routine.title) : null;
               return (
                 <TouchableOpacity
                   key={routine.id}
-                  onPress={() => onToggleRoutine(routine)}
+                  onPress={(event) => onToggleRoutine(routine, event)}
                   activeOpacity={0.7}
                   style={[styles.routineItem, { paddingVertical: padding * 0.6, paddingHorizontal: padding * 0.8, marginBottom: 3 }]}
                 >
                   {isChecked ? (
-                    <CheckCircle2 size={iconSize} color={routine.color} fill={routine.color} />
+                    <FourPointStar size={iconSize} color={routine.color} />
                   ) : (
                     <Circle size={iconSize} color="rgba(255,255,255,0.5)" />
                   )}
@@ -123,6 +150,144 @@ export function NodeOverlay({
                     )}
                   </Text>
                 </TouchableOpacity>
+              );
+            })}
+
+            {/* スタック表示 */}
+            {data.stacks?.map((stack) => {
+              const stackRoutines = stackRoutineMap[stack.id] ?? [];
+              const allChecked = stackRoutines.length > 0 && stackRoutines.every((r) => !!r.history[today]);
+              const someChecked = !allChecked && stackRoutines.some((r) => !!r.history[today]);
+              const btnSize = Math.round(26 * scaleFactor);
+              const stackLabelSize = Math.round(11 * scaleFactor);
+
+              return (
+                <View key={stack.id} style={{ marginBottom: padding * 0.5 }}>
+                  {/* スタックヘッダー */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: padding * 0.8,
+                    height: Math.round(30 * scaleFactor),
+                    marginBottom: 2,
+                  }}>
+                    <Layers size={stackLabelSize} color="#6366F1" style={{ marginRight: 4 }} />
+                    <Text
+                      style={{
+                        flex: 1,
+                        color: '#6366F1',
+                        fontSize: stackLabelSize,
+                        fontWeight: '700',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {stack.title || '無題のスタック'}
+                    </Text>
+                    {/* 一括チェックボタン（3状態） */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        const total = stackRoutines.length;
+                        if (total === 0 || !onToggleStack) return;
+                        const positions: Array<{ routineId: string; x: number; y: number; color: string }> =
+                          new Array(total).fill(null);
+                        let done = 0;
+                        const onMeasured = () => {
+                          done++;
+                          if (done === total) onToggleStack(stack.id, positions);
+                        };
+                        stackRoutines.forEach((routine, i) => {
+                          const iconRef = iconRefsRef.current[routine.id];
+                          if (iconRef) {
+                            iconRef.measureInWindow((x, y, w, h) => {
+                              positions[i] = { routineId: routine.id, x: x + w / 2, y: y + h / 2, color: routine.color || '#6366F1' };
+                              onMeasured();
+                            });
+                          } else {
+                            positions[i] = { routineId: routine.id, x: 0, y: 0, color: routine.color || '#6366F1' };
+                            onMeasured();
+                          }
+                        });
+                      }}
+                      activeOpacity={0.7}
+                      style={{
+                        width: btnSize,
+                        height: btnSize,
+                        borderRadius: btnSize / 2,
+                        backgroundColor: allChecked
+                          ? '#6366F1'
+                          : someChecked
+                          ? '#6366F160'
+                          : 'rgba(255,255,255,0.12)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {(allChecked || someChecked) && (
+                        <Check size={Math.round(12 * scaleFactor)} color="#FFFFFF" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 縦線 + スタック内ルーティン */}
+                  <View style={{ flexDirection: 'row' }}>
+                    <View style={{
+                      width: 2,
+                      backgroundColor: '#6366F140',
+                      marginLeft: padding * 0.8 + Math.round(5 * scaleFactor),
+                      marginRight: padding * 0.6,
+                      borderRadius: 1,
+                    }} />
+                    <View style={{ flex: 1 }}>
+                      {stackRoutines.map((routine) => {
+                        const isChecked = !!routine.history[today];
+                        const timerParts = onStartTimer ? parseTimerParts(routine.title) : null;
+                        return (
+                          <TouchableOpacity
+                            key={routine.id}
+                            onPress={(event) => onToggleRoutine(routine, event)}
+                            activeOpacity={0.7}
+                            style={[styles.routineItem, { paddingVertical: padding * 0.6, paddingHorizontal: padding * 0.8, marginBottom: 3 }]}
+                          >
+                            <View ref={(r) => { iconRefsRef.current[routine.id] = r; }}>
+                              {isChecked ? (
+                                <FourPointStar size={iconSize} color={routine.color} />
+                              ) : (
+                                <Circle size={iconSize} color="rgba(255,255,255,0.5)" />
+                              )}
+                            </View>
+                            <Text
+                              style={[
+                                styles.routineText,
+                                {
+                                  fontSize: routineSize,
+                                  marginLeft: padding * 0.8 + routineSize * 0.5,
+                                  textDecorationLine: isChecked ? 'line-through' : 'none',
+                                  opacity: isChecked ? 0.6 : 1,
+                                },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {timerParts ? (
+                                <>
+                                  {timerParts.before}
+                                  <Text
+                                    onPress={() => onStartTimer!(routine)}
+                                    style={{ color: '#0095F6', fontWeight: '700' }}
+                                  >
+                                    {timerParts.number}
+                                  </Text>
+                                  {timerParts.after}
+                                </>
+                              ) : (
+                                routine.title
+                              )}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </View>
               );
             })}
           </View>
